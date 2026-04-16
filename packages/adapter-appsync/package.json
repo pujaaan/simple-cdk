@@ -1,0 +1,28 @@
+{
+  "name": "@simple-cdk/appsync",
+  "version": "0.0.1",
+  "description": "simple-cdk adapter: AppSync GraphQL API with pluggable auth and auto CRUD.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist", "README.md"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "watch": "tsc -p tsconfig.json -w",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@simple-cdk/core": "0.0.1",
+    "@simple-cdk/dynamodb": "0.0.1",
+    "@simple-cdk/lambda": "0.0.1"
+  },
+  "peerDependencies": {
+    "aws-cdk-lib": "^2.160.0",
+    "constructs": "^10.3.0"
+  },
+  "devDependencies": {
+    "aws-cdk-lib": "^2.160.0",
+    "constructs": "^10.3.0",
+    "typescript": "^5.6.3"
+  },
+  "license": "MIT"
+}
