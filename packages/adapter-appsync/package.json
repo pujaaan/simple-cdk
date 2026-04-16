@@ -32,8 +32,15 @@
   "keywords": [
     "aws",
     "cdk",
+    "aws-cdk",
     "appsync",
+    "aws-appsync",
     "graphql",
+    "graphql-api",
+    "crud",
+    "resolvers",
+    "serverless",
+    "typescript",
     "adapter",
     "simple-cdk"
   ],

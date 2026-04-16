@@ -30,7 +30,13 @@
   "keywords": [
     "aws",
     "cdk",
+    "aws-cdk",
     "dynamodb",
+    "aws-dynamodb",
+    "nosql",
+    "serverless",
+    "data-modeling",
+    "typescript",
     "adapter",
     "simple-cdk"
   ],

@@ -30,7 +30,12 @@
   "keywords": [
     "aws",
     "cdk",
+    "aws-cdk",
     "lambda",
+    "aws-lambda",
+    "serverless",
+    "nodejs",
+    "typescript",
     "adapter",
     "simple-cdk"
   ],

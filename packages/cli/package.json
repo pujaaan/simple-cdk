@@ -2,7 +2,7 @@
   "name": "simple-cdk",
   "version": "0.0.1",
   "type": "module",
-  "description": "The simple-cdk CLI: list, synth, diff, deploy, destroy.",
+  "description": "Simple CLI for AWS CDK — init, list, synth, diff, deploy, destroy. Convention-over-configuration serverless on AWS Lambda, DynamoDB, AppSync, and Cognito.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
@@ -36,9 +36,15 @@
   "keywords": [
     "aws",
     "cdk",
+    "aws-cdk",
     "cli",
     "deploy",
-    "infrastructure"
+    "serverless",
+    "infrastructure-as-code",
+    "iac",
+    "typescript",
+    "simple-cdk",
+    "sst-alternative"
   ],
   "author": "Pujan Bhatta <pujan@csidryeye.com> (https://github.com/pujaaan)",
   "license": "MIT",

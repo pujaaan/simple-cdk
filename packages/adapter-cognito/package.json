@@ -30,8 +30,15 @@
   "keywords": [
     "aws",
     "cdk",
+    "aws-cdk",
     "cognito",
+    "aws-cognito",
     "auth",
+    "authentication",
+    "user-pool",
+    "identity",
+    "serverless",
+    "typescript",
     "adapter",
     "simple-cdk"
   ],

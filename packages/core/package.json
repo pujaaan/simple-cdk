@@ -2,7 +2,7 @@
   "name": "@simple-cdk/core",
   "version": "0.0.1",
   "type": "module",
-  "description": "Engine for simple-cdk: adapter loader, lifecycle, config, and core types.",
+  "description": "Engine for simple-cdk: a convention-over-configuration framework for AWS CDK with a pluggable adapter system for Lambda, DynamoDB, AppSync, and Cognito.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
@@ -27,11 +27,16 @@
   "keywords": [
     "aws",
     "cdk",
-    "infrastructure",
+    "aws-cdk",
+    "serverless",
+    "infrastructure-as-code",
     "iac",
+    "typescript",
+    "framework",
     "engine",
     "plugin",
-    "adapter"
+    "adapter",
+    "simple-cdk"
   ],
   "author": "Pujan Bhatta <pujan@csidryeye.com> (https://github.com/pujaaan)",
   "license": "MIT",

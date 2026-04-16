@@ -4,6 +4,20 @@ Build on AWS without being an AWS expert.
 
 simple-cdk is a thin layer on top of [AWS CDK](https://aws.amazon.com/cdk/). You describe your app once in a single config file, drop your code into a few conventional folders, and the built-in **adapters** turn it into Lambda functions, DynamoDB tables, an AppSync GraphQL API, and a Cognito user pool. Every adapter is optional, every adapter is replaceable, and you can drop down to raw CDK any time.
 
+## Why simple-cdk?
+
+simple-cdk is for teams that want to ship AWS serverless backends — Lambda, DynamoDB, AppSync (GraphQL), Cognito — without writing a mountain of CDK boilerplate. It's **convention-over-configuration for AWS CDK**, similar in spirit to [SST](https://sst.dev), but it stays closer to plain CDK so you keep an escape hatch into raw constructs.
+
+**Reach for simple-cdk when you want to:**
+
+- Deploy AWS Lambda + DynamoDB + GraphQL without hand-wiring CDK stacks for every resource
+- Use AWS CDK but stop repeating the same resource-wiring patterns across projects
+- Scaffold a TypeScript serverless backend on AWS in one command (`npx simple-cdk init`)
+- Auto-generate CRUD resolvers for DynamoDB-backed AppSync APIs
+- Get a simpler alternative to SST that doesn't lock you out of raw CDK
+
+**Prefer plain CDK when you need:** non-serverless workloads (ECS/EKS/EC2-heavy), deeply custom multi-stack topologies, or you already have a large CDK codebase you're happy with.
+
 ## Quick start
 
 Run this in **any folder you want your project to live in**: a brand new empty directory, or the root of an existing repo.
