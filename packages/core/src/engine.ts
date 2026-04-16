@@ -1,4 +1,4 @@
-import { App, Stack, Tags, RemovalPolicy } from 'aws-cdk-lib';
+import { App, Stack, Tags } from 'aws-cdk-lib';
 import { resolveConfig, type ResolveOptions } from './config.js';
 import { createLogger } from './logger.js';
 import type {
@@ -110,9 +110,9 @@ export class Engine {
       description: `${appName} ${stage} ${name} stack`,
     });
 
-    if (stageConfig.removalPolicy) {
-      stack.applyRemovalPolicy(toRemovalPolicy(stageConfig.removalPolicy));
-    }
+    // Removal policy is applied per-resource by adapters — stacks themselves
+    // are not retained/destroyed at the stack level. Adapters read
+    // `stageConfig.removalPolicy` from the context to decide.
     Tags.of(stack).add('app', appName);
     Tags.of(stack).add('stage', stage);
     for (const [k, v] of Object.entries(stageConfig.tags ?? {})) {
@@ -128,15 +128,4 @@ function countResources(map: Map<string, Resource[]>): number {
   let n = 0;
   for (const list of map.values()) n += list.length;
   return n;
-}
-
-function toRemovalPolicy(value: NonNullable<ResolvedAppConfig['stageConfig']['removalPolicy']>): RemovalPolicy {
-  switch (value) {
-    case 'destroy':
-      return RemovalPolicy.DESTROY;
-    case 'retain':
-      return RemovalPolicy.RETAIN;
-    case 'snapshot':
-      return RemovalPolicy.SNAPSHOT;
-  }
 }
