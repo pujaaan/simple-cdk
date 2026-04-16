@@ -1,0 +1,25 @@
+export function helpCommand(): void {
+  console.log(`simple-cdk — build on AWS without being an AWS expert.
+
+Usage:
+  simple-cdk <command> [options]
+
+Commands:
+  list                 Show what each adapter would discover (no synth)
+  synth                Synthesize the CloudFormation templates
+  diff                 Diff against the deployed stack(s)
+  deploy               Deploy stacks for the chosen stage
+  destroy              Tear down stacks for the chosen stage
+  help                 Show this message
+
+Common options:
+  --stage <name>       Stage to use (defaults to config.defaultStage or first stage)
+  --config <path>      Path to your simple-cdk config (default: simple-cdk.config.ts)
+  -- <cdk args>        Forward arguments to the underlying cdk CLI
+
+Examples:
+  simple-cdk list
+  simple-cdk synth --stage dev
+  simple-cdk deploy --stage prod -- --require-approval never
+`);
+}
