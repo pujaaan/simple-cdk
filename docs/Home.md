@@ -10,9 +10,9 @@ simple-cdk is a thin layer on top of [AWS CDK](https://aws.amazon.com/cdk/). You
 
 | | |
 |---|---|
-| **New?** | [[Getting-Started]] |
-| **Want the big picture?** | [[Architecture]] |
-| **Ready to customize?** | [[Extending]] |
+| **New?** | [Getting Started](Getting-Started.md) |
+| **Want the big picture?** | [Architecture](Architecture.md) |
+| **Ready to customize?** | [Extending](Extending.md) |
 
 ---
 
@@ -34,7 +34,7 @@ npx cdk bootstrap                        # one-time per region/account
 npx simple-cdk deploy --stage dev        # push to AWS
 ```
 
-Requirements: Node 22+, AWS credentials. See [[Getting-Started]] for the full prerequisites and the manual install path.
+Requirements: Node 22+, AWS credentials. See [Getting Started](Getting-Started.md) for the full prerequisites and the manual install path.
 
 ---
 
@@ -195,7 +195,7 @@ simple-cdk deploy --stage prod -- --require-approval never --concurrency 4
 
 ## Customizing
 
-Adapters are plain objects. Replace any built-in by passing your own. Write new ones for AWS services we don't ship. See [[Extending]] for the full walkthrough including filesystem discovery, cross-adapter wiring, and the AppSync auth pipeline.
+Adapters are plain objects. Replace any built-in by passing your own. Write new ones for AWS services we don't ship. See [Extending](Extending.md) for the full walkthrough including filesystem discovery, cross-adapter wiring, and the AppSync auth pipeline.
 
 ```ts
 // quickest custom adapter: three optional hooks and a name

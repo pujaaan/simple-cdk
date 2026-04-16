@@ -1,9 +1,9 @@
 **Get started**
-- [[Home]]
-- [[Getting-Started]]
+- [Home](Home.md)
+- [Getting Started](Getting-Started.md)
 
 **Concepts**
-- [[Architecture]]
+- [Architecture](Architecture.md)
 
 **Customize**
-- [[Extending]]
+- [Extending](Extending.md)
