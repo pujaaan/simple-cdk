@@ -1,18 +1,27 @@
 {
-  "name": "@simple-cdk/cognito",
+  "name": "@simple-cdk/cli",
   "version": "0.0.1",
   "type": "module",
-  "description": "simple-cdk adapter: Cognito user pool with auto-discovered Lambda triggers.",
+  "description": "The simple-cdk CLI: synth, deploy, diff, destroy, list.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "files": ["dist", "README.md"],
+  "bin": {
+    "simple-cdk": "bin/simple-cdk.js"
+  },
+  "files": [
+    "bin",
+    "dist",
+    "README.md"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "watch": "tsc -p tsconfig.json -w",
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@simple-cdk/core": "0.0.1"
+    "@simple-cdk/core": "0.0.1",
+    "aws-cdk": "^2.160.0",
+    "tsx": "^4.19.0"
   },
   "peerDependencies": {
     "aws-cdk-lib": "^2.160.0",

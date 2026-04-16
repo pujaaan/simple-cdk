@@ -1,6 +1,7 @@
 {
   "name": "@simple-cdk/core",
   "version": "0.0.1",
+  "type": "module",
   "description": "Engine for simple-cdk: adapter loader, lifecycle, config.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

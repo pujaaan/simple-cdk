@@ -1,6 +1,7 @@
 {
   "name": "@simple-cdk/lambda",
   "version": "0.0.1",
+  "type": "module",
   "description": "simple-cdk adapter: discover Lambda handlers and wire IAM grants.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

@@ -1,0 +1,34 @@
+import { parseArgs } from './args.js';
+import { listCommand } from './commands/list.js';
+import { makeCdkCommand } from './commands/cdk-passthrough.js';
+import { helpCommand } from './commands/help.js';
+
+export async function run(argv: string[]): Promise<void> {
+  // Strip cdk-passthrough args before parsing our own.
+  const splitIdx = argv.indexOf('--');
+  const own = splitIdx >= 0 ? argv.slice(0, splitIdx) : argv;
+  const args = parseArgs(own);
+  const [verb] = args.positional;
+
+  switch (verb) {
+    case undefined:
+    case 'help':
+    case '--help':
+    case '-h':
+      helpCommand();
+      return;
+    case 'list':
+      await listCommand(args);
+      return;
+    case 'synth':
+    case 'deploy':
+    case 'diff':
+    case 'destroy':
+      await makeCdkCommand(verb)(args);
+      return;
+    default:
+      console.error(`Unknown command: ${verb}\n`);
+      helpCommand();
+      process.exit(1);
+  }
+}
