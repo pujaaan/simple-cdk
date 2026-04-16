@@ -2,7 +2,7 @@
   "name": "@simple-cdk/cli",
   "version": "0.0.1",
   "type": "module",
-  "description": "The simple-cdk CLI: synth, deploy, diff, destroy, list.",
+  "description": "The simple-cdk CLI: list, synth, diff, deploy, destroy.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
@@ -32,5 +32,23 @@
     "constructs": "^10.3.0",
     "typescript": "^5.6.3"
   },
-  "license": "MIT"
+  "keywords": [
+    "aws",
+    "cdk",
+    "cli",
+    "deploy",
+    "infrastructure"
+  ],
+  "author": "Pujan Bhatta <pujan@csidryeye.com> (https://github.com/pujaaan)",
+  "license": "MIT",
+  "homepage": "https://github.com/pujaaan/simple-cdk/tree/main/packages/cli#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pujaaan/simple-cdk.git",
+    "directory": "packages/cli"
+  },
+  "bugs": "https://github.com/pujaaan/simple-cdk/issues",
+  "publishConfig": {
+    "access": "public"
+  }
 }

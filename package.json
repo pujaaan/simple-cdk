@@ -4,6 +4,14 @@
   "private": true,
   "type": "module",
   "description": "Build on AWS without being an AWS expert.",
+  "author": "Pujan Bhatta <pujan@csidryeye.com> (https://github.com/pujaaan)",
+  "license": "MIT",
+  "homepage": "https://github.com/pujaaan/simple-cdk#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pujaaan/simple-cdk.git"
+  },
+  "bugs": "https://github.com/pujaaan/simple-cdk/issues",
   "workspaces": [
     "packages/*",
     "examples/*"
@@ -12,7 +20,8 @@
     "build": "npm run build -w @simple-cdk/core && npm run build -w @simple-cdk/lambda -w @simple-cdk/dynamodb -w @simple-cdk/cognito && npm run build -w @simple-cdk/appsync && npm run build -w @simple-cdk/cli",
     "test": "npm run test --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",
-    "clean": "rm -rf packages/*/dist examples/*/dist examples/*/cdk.out"
+    "clean": "rm -rf packages/*/dist examples/*/dist examples/*/cdk.out",
+    "publish:all": "npm run build && npm publish --workspaces --access public"
   },
   "devDependencies": {
     "@types/node": "^22.9.0",

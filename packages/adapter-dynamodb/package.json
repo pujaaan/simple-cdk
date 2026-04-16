@@ -2,10 +2,13 @@
   "name": "@simple-cdk/dynamodb",
   "version": "0.0.1",
   "type": "module",
-  "description": "simple-cdk adapter: discover model files and create DynamoDB tables.",
+  "description": "simple-cdk adapter: discover model files and create DynamoDB tables with GSIs, streams, and TTL.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "files": ["dist", "README.md"],
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "watch": "tsc -p tsconfig.json -w",
@@ -23,5 +26,23 @@
     "constructs": "^10.3.0",
     "typescript": "^5.6.3"
   },
-  "license": "MIT"
+  "keywords": [
+    "aws",
+    "cdk",
+    "dynamodb",
+    "adapter",
+    "simple-cdk"
+  ],
+  "author": "Pujan Bhatta <pujan@csidryeye.com> (https://github.com/pujaaan)",
+  "license": "MIT",
+  "homepage": "https://github.com/pujaaan/simple-cdk/tree/main/packages/adapter-dynamodb#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pujaaan/simple-cdk.git",
+    "directory": "packages/adapter-dynamodb"
+  },
+  "bugs": "https://github.com/pujaaan/simple-cdk/issues",
+  "publishConfig": {
+    "access": "public"
+  }
 }
