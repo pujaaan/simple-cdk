@@ -4,9 +4,34 @@ Build on AWS without being an AWS expert.
 
 simple-cdk is a thin layer on top of [AWS CDK](https://aws.amazon.com/cdk/). You describe your app once in a single config file, drop your code into a few conventional folders, and the built-in **adapters** turn it into Lambda functions, DynamoDB tables, an AppSync GraphQL API, and a Cognito user pool. Every adapter is optional, every adapter is replaceable, and you can drop down to raw CDK any time.
 
-## Install
+## Quick start
 
-Two options.
+Run this in **any folder you want your project to live in**: a brand new empty directory, or the root of an existing repo.
+
+```bash
+mkdir my-app && cd my-app                # or: cd into an existing project root
+npx @simple-cdk/cli@latest init          # prompts you, then installs + scaffolds
+```
+
+`init` walks you through:
+
+- App name, AWS region, default stage
+- Which built-in adapters to include (`lambda`, `dynamodb`, `appsync`, `cognito`)
+
+Then it installs the right packages, writes a working `simple-cdk.config.ts`, and creates the `backend/` folders for the adapters you picked. When it's done:
+
+```bash
+npx cdk bootstrap                        # one-time per region/account
+npx simple-cdk deploy --stage dev        # push to AWS
+```
+
+You'll need Node 22+ and AWS credentials (`aws configure` or `AWS_PROFILE`) on the machine you run this from.
+
+See [examples/01-minimal](./examples/01-minimal) and [examples/02-with-models](./examples/02-with-models) for fully wired projects.
+
+## Manual install
+
+Skip `init` if you'd rather wire things up by hand or pin specific versions.
 
 ### From npm
 
@@ -17,28 +42,7 @@ npm install @simple-cdk/core @simple-cdk/cli
 npm install @simple-cdk/lambda @simple-cdk/dynamodb @simple-cdk/appsync @simple-cdk/cognito
 ```
 
-### From git
-
-Use this if you want to hack on simple-cdk itself, run the bundled examples, or pin to a specific commit.
-
-```bash
-git clone https://github.com/pujaaan/simple-cdk.git
-cd simple-cdk
-npm install
-npm run build
-```
-
-The repo is an npm workspace, so one build at the root wires every package together.
-
-You'll also need:
-
-- Node 22+
-- AWS credentials (`aws configure` or `AWS_PROFILE`)
-- A bootstrapped CDK environment: `npx cdk bootstrap aws://<account>/<region>`
-
-## Quick start
-
-Create `simple-cdk.config.ts` at your project root:
+Then create `simple-cdk.config.ts` at your project root:
 
 ```ts
 import { defineConfig } from '@simple-cdk/core';
@@ -64,23 +68,16 @@ export default defineConfig({
 });
 ```
 
-Add a Lambda handler:
+### From git
 
-```ts
-// backend/functions/hello/handler.ts
-export const handler = async () => ({ message: 'hello' });
-```
-
-Deploy it:
+Use this if you want to hack on simple-cdk itself or run the bundled examples.
 
 ```bash
-npx simple-cdk list                  # show what each adapter discovered
-npx simple-cdk deploy --stage dev    # push to AWS
+git clone https://github.com/pujaaan/simple-cdk.git
+cd simple-cdk
+npm install
+npm run build
 ```
-
-That's a working backend. No stacks, no constructs, no IAM dance.
-
-See [examples/01-minimal](./examples/01-minimal) and [examples/02-with-models](./examples/02-with-models) for full working projects.
 
 ## What's included
 

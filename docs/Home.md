@@ -16,33 +16,25 @@ simple-cdk is a thin layer on top of [AWS CDK](https://aws.amazon.com/cdk/). You
 
 ---
 
-## Install
+## Quick start
 
-Two options.
-
-### From npm
+Run this in **any folder you want your project to live in**: a brand new empty directory, or the root of an existing repo.
 
 ```bash
-npm install aws-cdk-lib constructs aws-cdk
-npm install @simple-cdk/core @simple-cdk/cli
-# adapters: install only the ones you need
-npm install @simple-cdk/lambda @simple-cdk/dynamodb @simple-cdk/appsync @simple-cdk/cognito
+mkdir my-app && cd my-app                # or: cd into an existing project root
+npx @simple-cdk/cli@latest init          # prompts you, then installs + scaffolds
 ```
 
-### From git
+`init` asks for app name, region, default stage, and which adapters to include, then installs the packages, writes a working `simple-cdk.config.ts`, and creates the `backend/` folders.
 
-Use this if you want to hack on simple-cdk itself, run the bundled examples, or pin to a specific commit.
+When it's done:
 
 ```bash
-git clone https://github.com/pujaaan/simple-cdk.git
-cd simple-cdk
-npm install
-npm run build
+npx cdk bootstrap                        # one-time per region/account
+npx simple-cdk deploy --stage dev        # push to AWS
 ```
 
-The repo is an npm workspace, so one build at the root wires every package together.
-
-Requirements: Node 22+, AWS credentials, a bootstrapped CDK environment. See [[Getting-Started]] for the full prerequisites.
+Requirements: Node 22+, AWS credentials. See [[Getting-Started]] for the full prerequisites and the manual install path.
 
 ---
 

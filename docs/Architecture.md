@@ -4,11 +4,15 @@ simple-cdk is split into three layers. Your code only ever touches the top two.
 
 ```mermaid
 flowchart TB
-  P["<b>Your project</b><br/>simple-cdk.config.ts · backend/* · custom adapters"]
-  A["<b>Adapters</b><br/>lambda · dynamodb · appsync · cognito · (yours)"]
-  E["<b>Engine</b> (@simple-cdk/core, never changes)<br/>discover → register → wire → synth"]
+  P["<b>Your project</b>"]
+  A["<b>Adapters</b>"]
+  E["<b>Engine</b>"]
   P --> A --> E
 ```
+
+- **Your project**: `simple-cdk.config.ts`, your `backend/` folders, and any custom adapters.
+- **Adapters**: built-ins (`lambda`, `dynamodb`, `appsync`, `cognito`) plus any you write.
+- **Engine** (`@simple-cdk/core`, never changes): runs `discover → register → wire → synth`.
 
 ## The engine
 
@@ -26,11 +30,15 @@ For each `simple-cdk synth | deploy | diff` run:
 
 ```mermaid
 flowchart LR
-  D["<b>discover()</b><br/>scan filesystem<br/>return Resource[]"]
-  R["<b>register()</b><br/>create CDK<br/>constructs"]
-  W["<b>wire()</b><br/>cross-reference<br/>other adapters"]
+  D["discover()"]
+  R["register()"]
+  W["wire()"]
   D --> R --> W
 ```
+
+- **discover()**: scan the filesystem and return a list of `Resource` objects.
+- **register()**: create CDK constructs from those resources.
+- **wire()**: cross-reference resources from other adapters.
 
 - **discover**: find what the adapter is responsible for (handler files, model files, trigger folders). Pure read.
 - **register**: instantiate CDK constructs (`new NodejsFunction()`, `new dynamodb.Table()`, etc.). One stack per logical group.

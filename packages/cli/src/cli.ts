@@ -1,5 +1,6 @@
 import { parseArgs } from './args.js';
 import { listCommand } from './commands/list.js';
+import { initCommand } from './commands/init.js';
 import { makeCdkCommand } from './commands/cdk-passthrough.js';
 import { helpCommand } from './commands/help.js';
 
@@ -16,6 +17,9 @@ export async function run(argv: string[]): Promise<void> {
     case '--help':
     case '-h':
       helpCommand();
+      return;
+    case 'init':
+      await initCommand();
       return;
     case 'list':
       await listCommand(args);
