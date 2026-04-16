@@ -2,7 +2,7 @@
   "name": "@simple-cdk/core",
   "version": "0.0.1",
   "type": "module",
-  "description": "Engine for simple-cdk: adapter loader, lifecycle, config.",
+  "description": "Engine for simple-cdk: adapter loader, lifecycle, config, and core types.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
@@ -23,5 +23,25 @@
     "constructs": "^10.3.0",
     "typescript": "^5.6.3"
   },
-  "license": "MIT"
+  "keywords": [
+    "aws",
+    "cdk",
+    "infrastructure",
+    "iac",
+    "engine",
+    "plugin",
+    "adapter"
+  ],
+  "author": "Pujan Bhatta <pujan@csidryeye.com> (https://github.com/pujaaan)",
+  "license": "MIT",
+  "homepage": "https://github.com/pujaaan/simple-cdk/tree/main/packages/core#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pujaaan/simple-cdk.git",
+    "directory": "packages/core"
+  },
+  "bugs": "https://github.com/pujaaan/simple-cdk/issues",
+  "publishConfig": {
+    "access": "public"
+  }
 }
