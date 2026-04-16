@@ -309,3 +309,6 @@ Pre-1.0. APIs may change. Issues and PRs welcome at [github.com/pujaaan/simple-c
 ## License
 
 MIT
+
+## Blog
+[https://dev.to/pujaaan/i-got-tired-of-writing-the-same-cdk-wiring-so-i-built-simple-cdk-obg](https://dev.to/pujaaan/i-got-tired-of-writing-the-same-cdk-wiring-so-i-built-simple-cdk-obg)
