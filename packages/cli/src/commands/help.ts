@@ -19,7 +19,7 @@ Common options:
   -- <cdk args>        Forward arguments to the underlying cdk CLI
 
 Examples:
-  npx @simple-cdk/cli@latest init
+  npx simple-cdk@latest init
   simple-cdk list
   simple-cdk synth --stage dev
   simple-cdk deploy --stage prod -- --require-approval never

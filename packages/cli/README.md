@@ -1,11 +1,11 @@
-# @simple-cdk/cli
+# simple-cdk
 
 The CLI for [simple-cdk](https://github.com/pujaaan/simple-cdk). Wraps the AWS CDK CLI with stage-aware commands and an auto-discovery `list` view.
 
 ## Install
 
 ```bash
-npm install @simple-cdk/cli aws-cdk-lib constructs
+npm install simple-cdk aws-cdk-lib constructs
 ```
 
 This installs the `simple-cdk` binary.

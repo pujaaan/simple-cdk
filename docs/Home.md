@@ -22,7 +22,7 @@ Run this in **any folder you want your project to live in**: a brand new empty d
 
 ```bash
 mkdir my-app && cd my-app                # or: cd into an existing project root
-npx @simple-cdk/cli@latest init          # prompts you, then installs + scaffolds
+npx simple-cdk@latest init               # prompts you, then installs + scaffolds
 ```
 
 `init` asks for app name, region, default stage, and which adapters to include, then installs the packages, writes a working `simple-cdk.config.ts`, and creates the `backend/` folders.

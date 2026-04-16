@@ -1,5 +1,5 @@
 {
-  "name": "@simple-cdk/cli",
+  "name": "simple-cdk",
   "version": "0.0.1",
   "type": "module",
   "description": "The simple-cdk CLI: list, synth, diff, deploy, destroy.",

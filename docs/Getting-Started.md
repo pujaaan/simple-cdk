@@ -19,7 +19,7 @@ Run this in **any folder you want your project to live in**: a brand new empty d
 
 ```bash
 mkdir my-app && cd my-app                # or: cd into an existing project root
-npx @simple-cdk/cli@latest init
+npx simple-cdk@latest init
 ```
 
 `init` walks you through:
@@ -48,7 +48,7 @@ npm init -y
 npm pkg set type=module
 
 npm install aws-cdk-lib constructs aws-cdk
-npm install @simple-cdk/core @simple-cdk/cli
+npm install @simple-cdk/core simple-cdk
 npm install @simple-cdk/lambda @simple-cdk/appsync
 ```
 

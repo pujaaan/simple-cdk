@@ -112,7 +112,7 @@ async function runNpmInstall(cwd: string, choices: InitChoices): Promise<void> {
   const version = await getOwnVersion();
   const pkgs: string[] = [
     `@simple-cdk/core@${version}`,
-    `@simple-cdk/cli@${version}`,
+    `simple-cdk@${version}`,
     'aws-cdk-lib',
     'constructs',
     'aws-cdk',

@@ -11,7 +11,7 @@ Initial release.
 ### Added
 
 - **`@simple-cdk/core`**: engine, lifecycle (discover → register → wire), config resolver, filesystem discovery helper, public types
-- **`@simple-cdk/cli`**: `simple-cdk` binary with `list`, `synth`, `diff`, `deploy`, `destroy` commands; passthrough to the underlying `cdk` CLI via `--`
+- **`simple-cdk`**: the `simple-cdk` CLI with `list`, `synth`, `diff`, `deploy`, `destroy` commands; passthrough to the underlying `cdk` CLI via `--`
 - **`@simple-cdk/lambda`**: auto-discover Lambda handlers from `backend/functions/<name>/handler.ts`, optional sibling `config.ts`, `getLambdaFunction` cross-adapter lookup
 - **`@simple-cdk/dynamodb`**: auto-discover model files (`*.model.ts`), create tables with GSIs, streams, TTL, point-in-time recovery, `getDynamoTable` lookup
 - **`@simple-cdk/appsync`**: GraphQL API creation, Lambda + DynamoDB data sources, auto-CRUD generator (get/list/create/update/delete), pluggable auth pipeline, manual resolver wiring

@@ -10,7 +10,7 @@ Run this in **any folder you want your project to live in**: a brand new empty d
 
 ```bash
 mkdir my-app && cd my-app                # or: cd into an existing project root
-npx @simple-cdk/cli@latest init          # prompts you, then installs + scaffolds
+npx simple-cdk@latest init               # prompts you, then installs + scaffolds
 ```
 
 `init` walks you through:
@@ -37,7 +37,7 @@ Skip `init` if you'd rather wire things up by hand or pin specific versions.
 
 ```bash
 npm install aws-cdk-lib constructs aws-cdk
-npm install @simple-cdk/core @simple-cdk/cli
+npm install @simple-cdk/core simple-cdk
 # adapters: install only the ones you need
 npm install @simple-cdk/lambda @simple-cdk/dynamodb @simple-cdk/appsync @simple-cdk/cognito
 ```
