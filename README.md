@@ -6,7 +6,7 @@ simple-cdk is a thin layer on top of [AWS CDK](https://aws.amazon.com/cdk/). You
 
 ## Why simple-cdk?
 
-simple-cdk is for teams that want to ship AWS serverless backends — Lambda, DynamoDB, AppSync (GraphQL), Cognito — without writing a mountain of CDK boilerplate. It's **convention-over-configuration for AWS CDK**, similar in spirit to [SST](https://sst.dev), but it stays closer to plain CDK so you keep an escape hatch into raw constructs.
+simple-cdk is for teams that want to ship AWS serverless backends — Lambda, DynamoDB, AppSync (GraphQL), Cognito — without writing a mountain of CDK boilerplate. It's **convention-over-configuration for AWS CDK**, borrowing the scaffold-and-go simplicity of tools like [AWS Amplify](https://aws.amazon.com/amplify/) while staying on plain CDK so you keep an escape hatch into raw constructs.
 
 **Reach for simple-cdk when you want to:**
 
@@ -14,9 +14,9 @@ simple-cdk is for teams that want to ship AWS serverless backends — Lambda, Dy
 - Use AWS CDK but stop repeating the same resource-wiring patterns across projects
 - Scaffold a TypeScript serverless backend on AWS in one command (`npx simple-cdk init`)
 - Auto-generate CRUD resolvers for DynamoDB-backed AppSync APIs
-- Get a simpler alternative to SST that doesn't lock you out of raw CDK
+- Keep Amplify-style scaffolding ergonomics on projects where Amplify's restrictions won't fit
 
-**Prefer plain CDK when you need:** non-serverless workloads (ECS/EKS/EC2-heavy), deeply custom multi-stack topologies, or you already have a large CDK codebase you're happy with.
+**Prefer plain CDK or Amplify when:** you have non-serverless workloads (ECS/EKS/EC2-heavy), deeply custom multi-stack topologies, an existing CDK codebase you're happy with, or you want a fully managed full-stack framework that hosts frontend + backend together.
 
 ## Quick start
 
@@ -59,27 +59,27 @@ npm install @simple-cdk/lambda @simple-cdk/dynamodb @simple-cdk/appsync @simple-
 Then create `simple-cdk.config.ts` at your project root:
 
 ```ts
-import { defineConfig } from '@simple-cdk/core';
-import { lambdaAdapter } from '@simple-cdk/lambda';
-import { dynamoDbAdapter } from '@simple-cdk/dynamodb';
-import { appSyncAdapter } from '@simple-cdk/appsync';
+import {defineConfig} from '@simple-cdk/core'
+import {lambdaAdapter} from '@simple-cdk/lambda'
+import {dynamoDbAdapter} from '@simple-cdk/dynamodb'
+import {appSyncAdapter} from '@simple-cdk/appsync'
 
 export default defineConfig({
   app: 'my-app',
   defaultStage: 'dev',
   stages: {
-    dev:  { region: 'us-east-1', removalPolicy: 'destroy' },
-    prod: { region: 'us-east-1', removalPolicy: 'retain', logRetentionDays: 365 },
+    dev: {region: 'us-east-1', removalPolicy: 'destroy'},
+    prod: {region: 'us-east-1', removalPolicy: 'retain', logRetentionDays: 365},
   },
   adapters: [
     lambdaAdapter(),
     dynamoDbAdapter(),
     appSyncAdapter({
       schemaFile: 'schema.graphql',
-      generateCrud: { models: 'all' },
+      generateCrud: {models: 'all'},
     }),
   ],
-});
+})
 ```
 
 ### From git
@@ -110,10 +110,10 @@ backend/functions/
 
 ```ts
 lambdaAdapter({
-  dir: 'backend/functions',     // default
+  dir: 'backend/functions', // default
   defaultMemoryMb: 256,
   defaultTimeoutSeconds: 30,
-  stackName: 'lambda',          // default
+  stackName: 'lambda', // default
 })
 ```
 
@@ -125,19 +125,19 @@ Model-driven DynamoDB tables from `backend/models/*.model.ts`.
 
 ```ts
 // backend/models/todo.model.ts
-import type { DynamoDbModelConfig } from '@simple-cdk/dynamodb';
+import type {DynamoDbModelConfig} from '@simple-cdk/dynamodb'
 
 export default {
-  pk: { name: 'id' },
+  pk: {name: 'id'},
   // sk, gsis, stream, ttlAttribute, billingMode all supported
-} satisfies DynamoDbModelConfig;
+} satisfies DynamoDbModelConfig
 ```
 
 ```ts
 dynamoDbAdapter({
-  dir: 'backend/models',                  // default
-  match: ['.model.ts', '.model.js'],      // default
-  stackName: 'data',                      // default
+  dir: 'backend/models', // default
+  match: ['.model.ts', '.model.js'], // default
+  stackName: 'data', // default
 })
 ```
 
@@ -149,11 +149,11 @@ GraphQL API from a schema file. Auto-generates CRUD resolvers for any DynamoDB m
 
 ```ts
 appSyncAdapter({
-  schemaFile: 'schema.graphql',           // required
-  apiName: 'api',                         // default
-  authorization: { kind: 'api-key' },     // or 'iam' | 'cognito'
+  schemaFile: 'schema.graphql', // required
+  apiName: 'api', // default
+  authorization: {kind: 'api-key'}, // or 'iam' | 'cognito'
   generateCrud: {
-    models: 'all',                        // or ['todo', 'user']
+    models: 'all', // or ['todo', 'user']
     operations: ['get', 'list', 'create', 'update', 'delete'],
     softDelete: false,
   },
@@ -162,10 +162,10 @@ appSyncAdapter({
     {
       typeName: 'Query',
       fieldName: 'hello',
-      source: { kind: 'lambda', lambdaName: 'hello' },
+      source: {kind: 'lambda', lambdaName: 'hello'},
     },
   ],
-  authPipeline: { jsFile: 'resolvers/auth.js' },  // optional
+  authPipeline: {jsFile: 'resolvers/auth.js'}, // optional
 })
 ```
 
@@ -183,11 +183,11 @@ backend/triggers/
 
 ```ts
 cognitoAdapter({
-  poolName: 'users',                      // default
-  triggersDir: 'backend/triggers',        // default
-  signInAlias: 'email',                   // default
-  selfSignUp: true,                       // default
-  mfa: 'off',                             // 'optional' | 'required'
+  poolName: 'users', // default
+  triggersDir: 'backend/triggers', // default
+  signInAlias: 'email', // default
+  selfSignUp: true, // default
+  mfa: 'off', // 'optional' | 'required'
   // standardAttributes, customAttributes, passwordPolicy supported
 })
 ```
@@ -196,13 +196,13 @@ Folder names map to Cognito triggers: `pre-sign-up`, `post-confirmation`, `pre-a
 
 ### CLI
 
-| Command | What it does |
-|---------|--------------|
-| `simple-cdk list` | Run discovery and print what each adapter found. No synth, no deploy. |
-| `simple-cdk synth` | Generate CloudFormation. |
-| `simple-cdk diff` | Diff against the deployed stack. |
-| `simple-cdk deploy` | Push to AWS. |
-| `simple-cdk destroy` | Tear down stacks. |
+| Command              | What it does                                                          |
+| -------------------- | --------------------------------------------------------------------- |
+| `simple-cdk list`    | Run discovery and print what each adapter found. No synth, no deploy. |
+| `simple-cdk synth`   | Generate CloudFormation.                                              |
+| `simple-cdk diff`    | Diff against the deployed stack.                                      |
+| `simple-cdk deploy`  | Push to AWS.                                                          |
+| `simple-cdk destroy` | Tear down stacks.                                                     |
 
 Flags: `--stage <name>` to pick a stage (default: `defaultStage` in config). Anything after `--` is forwarded to the underlying `cdk` CLI:
 
@@ -219,27 +219,27 @@ Adapters are plain objects matching the [`Adapter`](./packages/core/src/types.ts
 Pass your own object instead of the factory result. Same `name` replaces the built-in:
 
 ```ts
-import { lambdaAdapter } from '@simple-cdk/lambda';
-import { Tags } from 'aws-cdk-lib';
+import {lambdaAdapter} from '@simple-cdk/lambda'
+import {Tags} from 'aws-cdk-lib'
 
-const base = lambdaAdapter();
+const base = lambdaAdapter()
 
 const taggedLambda = {
   ...base,
   register: async (ctx) => {
-    await base.register?.(ctx);
+    await base.register?.(ctx)
     for (const r of ctx.resources) {
-      const fn = (r.config as any).construct;
-      if (fn) Tags.of(fn).add('Owner', 'platform');
+      const fn = (r.config as any).construct
+      if (fn) Tags.of(fn).add('Owner', 'platform')
     }
   },
-};
+}
 
 export default defineConfig({
   app: 'my-app',
-  stages: { dev: { region: 'us-east-1' } },
+  stages: {dev: {region: 'us-east-1'}},
   adapters: [taggedLambda],
-});
+})
 ```
 
 ### Write your own adapter
@@ -248,10 +248,10 @@ Anything not covered by a built-in adapter? Write one. It's a small interface: t
 
 ```ts
 // adapters/sqs.ts
-import type { Adapter } from '@simple-cdk/core';
-import { Duration, aws_sqs as sqs } from 'aws-cdk-lib';
+import type {Adapter} from '@simple-cdk/core'
+import {Duration, aws_sqs as sqs} from 'aws-cdk-lib'
 
-export function sqsAdapter(opts: { queues: string[] }): Adapter {
+export function sqsAdapter(opts: {queues: string[]}): Adapter {
   return {
     name: 'sqs',
 
@@ -264,28 +264,25 @@ export function sqsAdapter(opts: { queues: string[] }): Adapter {
       })),
 
     register: (ctx) => {
-      const stack = ctx.stack('queues');
+      const stack = ctx.stack('queues')
       for (const r of ctx.resources) {
         const queue = new sqs.Queue(stack, r.name, {
           queueName: `${ctx.config.app}-${ctx.config.stage}-${r.name}`,
           visibilityTimeout: Duration.seconds(30),
-        });
-        (r.config as any).construct = queue;
+        })
+        ;(r.config as any).construct = queue
       }
     },
-  };
+  }
 }
 ```
 
 Use it like any built-in:
 
 ```ts
-import { sqsAdapter } from './adapters/sqs.js';
+import {sqsAdapter} from './adapters/sqs.js'
 
-adapters: [
-  lambdaAdapter(),
-  sqsAdapter({ queues: ['orders', 'emails'] }),
-]
+adapters: [lambdaAdapter(), sqsAdapter({queues: ['orders', 'emails']})]
 ```
 
 The three hooks:
@@ -309,3 +306,7 @@ Pre-1.0. APIs may change. Issues and PRs welcome at [github.com/pujaaan/simple-c
 ## License
 
 MIT
+
+## Blog
+
+[https://dev.to/pujaaan/i-got-tired-of-writing-the-same-cdk-wiring-so-i-built-simple-cdk-obg](https://dev.to/pujaaan/i-got-tired-of-writing-the-same-cdk-wiring-so-i-built-simple-cdk-obg)

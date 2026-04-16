@@ -25,6 +25,13 @@ export type StreamMode = 'KEYS_ONLY' | 'NEW_IMAGE' | 'OLD_IMAGE' | 'NEW_AND_OLD_
 export interface DynamoDbModelConfig {
   /** Table id; defaults to model file stem. */
   name?: string;
+  /**
+   * Pin the CloudFormation logical ID for this table. Use when adopting
+   * simple-cdk over an existing stack, or after renaming a model, to avoid
+   * CloudFormation treating the rename as delete-and-recreate (data loss).
+   * Defaults to `${PascalCase(name)}Table`.
+   */
+  constructId?: string;
   pk: KeyDef;
   sk?: KeyDef;
   gsis?: GsiConfig[];

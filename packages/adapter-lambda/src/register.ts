@@ -17,7 +17,7 @@ export function registerLambdas(ctx: RegisterContext, opts: LambdaAdapterOptions
   for (const resource of ctx.resources as LambdaResource[]) {
     const fc = resource.config.functionConfig;
     const stack = ctx.stack(fc.stack ?? stackName);
-    const id = pascal(resource.name) + 'Function';
+    const id = fc.constructId ?? pascal(resource.name) + 'Function';
 
     const fn = new lambdaNode.NodejsFunction(stack, id, {
       entry: resource.config.handlerFile,

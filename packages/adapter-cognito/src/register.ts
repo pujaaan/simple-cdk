@@ -28,7 +28,7 @@ export function registerUserPool(ctx: RegisterContext, opts: CognitoAdapterOptio
   const stack = ctx.stack(opts.stackName ?? 'auth');
   const removal = removalPolicyFromStage(ctx.config.stageConfig.removalPolicy);
 
-  const userPool = new cognito.UserPool(stack, 'UserPool', {
+  const userPool = new cognito.UserPool(stack, opts.userPoolConstructId ?? 'UserPool', {
     userPoolName: `${ctx.config.app}-${ctx.config.stage}-${opts.poolName ?? 'users'}`,
     selfSignUpEnabled: opts.selfSignUp ?? true,
     signInAliases: signInAliasFor(opts.signInAlias ?? 'email'),

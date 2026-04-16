@@ -26,6 +26,12 @@ export interface TriggerResourceConfig {
 export type TriggerResource = Resource<TriggerResourceConfig> & { type: 'cognito-trigger' };
 
 export interface CognitoAdapterOptions {
+  /**
+   * Pin the CloudFormation logical ID for the UserPool. Use when adopting
+   * simple-cdk over an existing stack whose pool was created under a
+   * different logical ID. Default: `'UserPool'`.
+   */
+  userPoolConstructId?: string;
   /** User pool name suffix. Default: 'users'. */
   poolName?: string;
   /** Path to discover trigger handlers. Default: 'backend/triggers'. */

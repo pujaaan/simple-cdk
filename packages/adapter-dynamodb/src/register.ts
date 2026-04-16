@@ -17,7 +17,7 @@ export function registerTables(ctx: RegisterContext, opts: DynamoDbAdapterOption
   for (const resource of ctx.resources as DynamoDbResource[]) {
     const cfg = resource.config.modelConfig;
     const stack = ctx.stack(cfg.stack ?? stackName);
-    const id = pascal(resource.name) + 'Table';
+    const id = cfg.constructId ?? pascal(resource.name) + 'Table';
 
     const table = new ddb.Table(stack, id, {
       tableName: `${ctx.config.app}-${ctx.config.stage}-${resource.name}`,

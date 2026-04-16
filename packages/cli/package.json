@@ -44,7 +44,7 @@
     "iac",
     "typescript",
     "simple-cdk",
-    "sst-alternative"
+    "amplify-alternative"
   ],
   "author": "Pujan Bhatta <pujan@csidryeye.com> (https://github.com/pujaaan)",
   "license": "MIT",

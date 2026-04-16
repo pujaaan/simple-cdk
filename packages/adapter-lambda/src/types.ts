@@ -8,6 +8,13 @@ import type { aws_iam, aws_lambda_nodejs, Duration } from 'aws-cdk-lib';
 export interface LambdaFunctionConfig {
   /** Override the function name. Defaults to the folder name. */
   name?: string;
+  /**
+   * Pin the CloudFormation logical ID for this function. Use when adopting
+   * simple-cdk over an existing stack, or after renaming a handler folder,
+   * to avoid CloudFormation treating the rename as delete-and-recreate.
+   * Defaults to `${PascalCase(name)}Function`.
+   */
+  constructId?: string;
   /** Memory in MB. Default: 256. */
   memoryMb?: number;
   /** Timeout in seconds. Default: 30. */

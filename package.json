@@ -14,7 +14,7 @@
     "typescript",
     "simple-cdk",
     "convention-over-configuration",
-    "sst-alternative"
+    "amplify-alternative"
   ],
   "author": "Pujan Bhatta <pujan@csidryeye.com> (https://github.com/pujaaan)",
   "license": "MIT",
