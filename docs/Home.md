@@ -1,8 +1,8 @@
-# simple-cdk Wiki
+# simple-cdk
 
 > Build on AWS without being an AWS expert.
 
-A thin, plugin-driven layer on top of [AWS CDK](https://aws.amazon.com/cdk/). The engine is tiny and stable. Real opinions live in **adapters** — swap them, extend them, or write your own.
+simple-cdk is a thin layer on top of [AWS CDK](https://aws.amazon.com/cdk/). You describe your app once in a single config file, drop your code into a few conventional folders, and the built-in **adapters** turn it into Lambda functions, DynamoDB tables, an AppSync GraphQL API, and a Cognito user pool. Every adapter is optional, every adapter is replaceable, and you can drop down to raw CDK any time.
 
 ---
 
@@ -10,37 +10,22 @@ A thin, plugin-driven layer on top of [AWS CDK](https://aws.amazon.com/cdk/). Th
 
 | | |
 |---|---|
-| **New?** | Read [[Getting-Started]] |
-| **Want the big picture?** | Read [[Architecture]] |
-| **Ready to customize?** | Read [[Extending]] or jump to [[Build-Custom-Adapter]] |
-| **Looking for an adapter?** | Browse [[Adapters]] |
+| **New?** | [[Getting-Started]] |
+| **Want the big picture?** | [[Architecture]] |
+| **Ready to customize?** | [[Extending]] |
 
 ---
 
-## What's in the box
+## Install
 
-| Package | What it does |
-|---------|--------------|
-| `@simple-cdk/core` | Engine: adapter loader, lifecycle, config, types |
-| `@simple-cdk/cli` | The `simple-cdk` CLI binary |
-| `@simple-cdk/lambda` | Auto-discover Lambda handlers from `backend/functions/` |
-| `@simple-cdk/dynamodb` | Model-driven DynamoDB tables from `backend/models/` |
-| `@simple-cdk/appsync` | AppSync GraphQL API + auto CRUD + pluggable auth |
-| `@simple-cdk/cognito` | Cognito user pool + Lambda triggers from `backend/triggers/` |
+```bash
+npm install aws-cdk-lib constructs aws-cdk
+npm install @simple-cdk/core @simple-cdk/cli
+# adapters — install only the ones you need
+npm install @simple-cdk/lambda @simple-cdk/dynamodb @simple-cdk/appsync @simple-cdk/cognito
+```
 
-See per-adapter pages in [[Adapters]] for full options.
-
----
-
-## Why simple-cdk
-
-| What you want | What's painful today |
-|---------------|----------------------|
-| Spin up an API + DB + auth quickly | Raw CDK is verbose; every project hand-rolls the same wiring |
-| Keep full control over AWS | Amplify hides too much and is hard to escape when you outgrow it |
-| Reduce boilerplate without giving up CDK | SST removes IaC boilerplate but you still wire every model and resolver yourself |
-
-simple-cdk is the **kernel + plugins** version. Stable engine + opinionated defaults for common AWS resources. Drop down to raw CDK any time. Replace any adapter with your own.
+Requirements: Node 22+, AWS credentials, a bootstrapped CDK environment.
 
 ---
 
@@ -61,8 +46,8 @@ export default defineConfig({
     prod: { region: 'us-east-1', removalPolicy: 'retain', logRetentionDays: 365 },
   },
   adapters: [
-    lambdaAdapter({ dir: 'backend/functions' }),
-    dynamoDbAdapter({ dir: 'backend/models' }),
+    lambdaAdapter(),
+    dynamoDbAdapter(),
     appSyncAdapter({
       schemaFile: 'schema.graphql',
       generateCrud: { models: 'all' },
@@ -71,7 +56,147 @@ export default defineConfig({
 });
 ```
 
+```bash
+npx simple-cdk list                  # show what each adapter discovered
+npx simple-cdk deploy --stage dev    # push to AWS
+```
+
 That's a working backend. No stacks, no constructs, no IAM dance.
+
+---
+
+## What's included
+
+Each adapter follows the same pattern: drop files in a folder, the adapter discovers them, the engine turns them into CDK resources.
+
+### `@simple-cdk/lambda`
+
+Auto-discovers Lambda handlers from `backend/functions/`.
+
+```
+backend/functions/
+  hello/
+    handler.ts       # required — exports `handler`
+    config.ts        # optional — per-function options
+```
+
+```ts
+lambdaAdapter({
+  dir: 'backend/functions',     // default
+  defaultMemoryMb: 256,
+  defaultTimeoutSeconds: 30,
+  stackName: 'lambda',          // default
+})
+```
+
+Per-function `config.ts` overrides memory, timeout, runtime, environment, and IAM policies. Defaults: `nodejs20.x`, 256 MB, 30 s.
+
+### `@simple-cdk/dynamodb`
+
+Model-driven DynamoDB tables from `backend/models/*.model.ts`.
+
+```ts
+// backend/models/todo.model.ts
+import type { DynamoDbModelConfig } from '@simple-cdk/dynamodb';
+
+export default {
+  pk: { name: 'id' },
+  // sk, gsis, stream, ttlAttribute, billingMode all supported
+} satisfies DynamoDbModelConfig;
+```
+
+```ts
+dynamoDbAdapter({
+  dir: 'backend/models',                  // default
+  match: ['.model.ts', '.model.js'],      // default
+  stackName: 'data',                      // default
+})
+```
+
+Defaults: `PAY_PER_REQUEST`, point-in-time recovery on. Table name: `<app>-<stage>-<model>`.
+
+### `@simple-cdk/appsync`
+
+GraphQL API from a schema file. Auto-generates CRUD resolvers for any DynamoDB model and exposes a pluggable auth pipeline.
+
+```ts
+appSyncAdapter({
+  schemaFile: 'schema.graphql',           // required
+  apiName: 'api',                         // default
+  authorization: { kind: 'api-key' },     // or 'iam' | 'cognito'
+  generateCrud: {
+    models: 'all',                        // or ['todo', 'user']
+    operations: ['get', 'list', 'create', 'update', 'delete'],
+    softDelete: false,
+  },
+  resolvers: [
+    {
+      typeName: 'Query',
+      fieldName: 'hello',
+      source: { kind: 'lambda', lambdaName: 'hello' },
+    },
+  ],
+  authPipeline: { jsFile: 'resolvers/auth.js' },  // optional
+})
+```
+
+Runs in the wire phase, so it can see Lambdas and tables registered by other adapters.
+
+### `@simple-cdk/cognito`
+
+Cognito user pool + Lambda triggers from `backend/triggers/`.
+
+```
+backend/triggers/
+  pre-sign-up/handler.ts
+  post-confirmation/handler.ts
+```
+
+```ts
+cognitoAdapter({
+  poolName: 'users',                      // default
+  triggersDir: 'backend/triggers',        // default
+  signInAlias: 'email',                   // default
+  selfSignUp: true,                       // default
+  mfa: 'off',                             // 'optional' | 'required'
+})
+```
+
+Folder names map to Cognito triggers: `pre-sign-up`, `post-confirmation`, `pre-authentication`, `post-authentication`, `pre-token-generation`, `custom-message`, `define-auth-challenge`, `create-auth-challenge`, `verify-auth-challenge`, `user-migration`.
+
+---
+
+## CLI
+
+| Command | What it does |
+|---------|--------------|
+| `simple-cdk list` | Run discovery and print what each adapter found. No synth, no deploy. |
+| `simple-cdk synth` | Generate CloudFormation. |
+| `simple-cdk diff` | Diff against the deployed stack. |
+| `simple-cdk deploy` | Push to AWS. |
+| `simple-cdk destroy` | Tear down stacks. |
+
+Flags: `--stage <name>` to pick a stage. Anything after `--` is forwarded to `cdk`:
+
+```bash
+simple-cdk deploy --stage prod -- --require-approval never --concurrency 4
+```
+
+---
+
+## Customizing
+
+Adapters are plain objects. Replace any built-in by passing your own. Write new ones for AWS services we don't ship — see [[Extending]] for the full walkthrough including filesystem discovery, cross-adapter wiring, and the AppSync auth pipeline.
+
+```ts
+// quickest custom adapter — three optional hooks and a name
+const myAdapter: Adapter = {
+  name: 'sqs',
+  discover: (ctx) => [...],   // find what you're responsible for
+  register: (ctx) => {...},   // turn each into a CDK construct
+  wire: (ctx) => {...},       // connect to other adapters' resources
+};
+```
 
 ---
 

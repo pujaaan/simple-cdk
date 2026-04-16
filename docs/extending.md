@@ -1,8 +1,8 @@
-# Extending simple-cdk
+# Customizing
 
-Three ways to customize, in order of how much code you'll write:
+Three ways to bend simple-cdk to your needs, in order of how much code you'll write:
 
-1. **Configure** — pass options to the built-in adapters
+1. **Configure** — pass options to a built-in adapter
 2. **Override** — replace a built-in adapter with your own
 3. **Add** — write a new adapter for something we don't ship
 
@@ -12,14 +12,14 @@ All three coexist. You can configure most adapters, override one, and add a new 
 
 ## 1. Configure built-in adapters
 
-Most knobs you'll want are already exposed. Examples:
+Most knobs you'll want are already exposed. A few examples:
 
 ```ts
 import { lambdaAdapter } from '@simple-cdk/lambda';
 
 lambdaAdapter({
   dir: 'src/server/functions',     // non-default directory
-  defaultMemoryMb: 512,             // bump default memory
+  defaultMemoryMb: 512,
   defaultTimeoutSeconds: 60,
   stackName: 'workers',             // separate stack from other lambdas
 });
@@ -45,7 +45,6 @@ appSyncAdapter({
     softDelete: true,
   },
   resolvers: [
-    // anything not covered by auto-CRUD: write a manual resolver
     {
       typeName: 'Mutation',
       fieldName: 'archiveUser',
@@ -55,13 +54,13 @@ appSyncAdapter({
 });
 ```
 
-The full option shapes are in each adapter's `types.ts`.
+The full option shapes live in each adapter's `types.ts` (e.g. [`packages/adapter-lambda/src/types.ts`](../packages/adapter-lambda/src/types.ts)).
 
 ---
 
 ## 2. Override a built-in adapter
 
-Adapters are just objects matching the `Adapter` interface. Replace any of them by passing your own implementation in `adapters: []`. The engine doesn't care where they came from.
+Adapters are plain objects matching the [`Adapter`](../packages/core/src/types.ts) interface. Replace any of them by passing your own implementation in `adapters: []`. The engine doesn't care where it came from.
 
 ### Wrap an existing adapter
 
@@ -70,17 +69,17 @@ The most common case: keep most of an adapter's behavior, change one phase.
 ```ts
 import { lambdaAdapter } from '@simple-cdk/lambda';
 import type { Adapter } from '@simple-cdk/core';
+import { Tags } from 'aws-cdk-lib';
 
 const base = lambdaAdapter({ dir: 'backend/functions' });
 
-const myLambdaAdapter: Adapter = {
+const taggedLambda: Adapter = {
   ...base,
   register: async (ctx) => {
     await base.register?.(ctx);
-    // also tag every function
     for (const r of ctx.resources) {
       const fn = (r.config as any).construct;
-      if (fn) cdk.Tags.of(fn).add('Owner', 'platform-team');
+      if (fn) Tags.of(fn).add('Owner', 'platform-team');
     }
   },
 };
@@ -88,7 +87,7 @@ const myLambdaAdapter: Adapter = {
 export default defineConfig({
   app: 'my-app',
   stages: { dev: { region: 'us-east-1' } },
-  adapters: [myLambdaAdapter],
+  adapters: [taggedLambda],
 });
 ```
 
@@ -100,10 +99,9 @@ If the built-in shape doesn't fit, write your own. The discovery convention, con
 import type { Adapter } from '@simple-cdk/core';
 import { aws_lambda as lambda } from 'aws-cdk-lib';
 
-const myLambdaAdapter: Adapter = {
+const myLambda: Adapter = {
   name: 'lambda',                                   // same name → replaces the built-in
   discover: async (ctx) => {
-    // your own scanning logic
     return [{ type: 'lambda', name: 'foo', source: '...', config: { /* … */ } }];
   },
   register: (ctx) => {
@@ -119,9 +117,9 @@ The engine matches adapters by `name` for the wire-phase lookup (`resourcesOf('l
 
 ---
 
-## 3. Add a new adapter
+## 3. Write a new adapter
 
-This is the same shape as overriding, just a new `name`. Example: an SQS adapter that auto-discovers queue definitions.
+Same shape as overriding, just a new `name`. Example: an SQS adapter that auto-discovers queue definitions from disk.
 
 ### Step 1 — define the resource shape
 
@@ -151,10 +149,9 @@ export type SqsResource = Resource<SqsResourceConfig> & { type: 'sqs-queue' };
 // adapters/sqs/index.ts
 import type { Adapter, WireContext } from '@simple-cdk/core';
 import { scanFiles } from '@simple-cdk/core';
-import { Duration } from 'aws-cdk-lib';
-import { aws_sqs as sqs } from 'aws-cdk-lib';
+import { Duration, aws_sqs as sqs } from 'aws-cdk-lib';
 import { pathToFileURL } from 'node:url';
-import type { SqsModelConfig, SqsResourceConfig, SqsResource } from './types.js';
+import type { SqsModelConfig, SqsResource } from './types.js';
 
 export interface SqsAdapterOptions {
   dir?: string;
@@ -214,7 +211,7 @@ export function getQueue(ctx: Pick<WireContext, 'resourcesOf'>, name: string): s
 ### Step 3 — use it
 
 ```ts
-import { sqsAdapter, getQueue } from './adapters/sqs';
+import { sqsAdapter, getQueue } from './adapters/sqs/index.js';
 
 export default defineConfig({
   app: 'my-app',
@@ -222,7 +219,7 @@ export default defineConfig({
   adapters: [
     lambdaAdapter(),
     sqsAdapter({ dir: 'backend/queues' }),
-    // a custom wiring adapter that grants Lambdas SQS permissions
+    // a tiny wiring adapter that grants Lambdas SQS permissions
     {
       name: 'lambda-sqs-bindings',
       wire: (ctx) => {
@@ -237,6 +234,29 @@ export default defineConfig({
 
 ---
 
+## The adapter contract
+
+```ts
+interface Adapter {
+  name: string;
+  discover?(ctx: DiscoveryContext): Promise<Resource[]> | Resource[];
+  register?(ctx: RegisterContext): void | Promise<void>;
+  wire?(ctx: WireContext): void | Promise<void>;
+  commands?(): Command[];
+}
+```
+
+| Hook | What it gets | What it does |
+|------|--------------|--------------|
+| `discover` | `rootDir`, `config`, `log` | Scan filesystem (or anywhere) and return a list of `Resource` objects. Pure read. |
+| `register` | All of the above + the CDK `App`, `stack(name)`, this adapter's resources, all adapters' resources | Create CDK constructs. Stash the construct on the resource for the wire phase. |
+| `wire` | All of the above + `resourcesOf(adapterName)` | Cross-reference resources from other adapters and connect them. |
+| `commands` | — | Optional CLI commands this adapter contributes. |
+
+All hooks are optional. An adapter can do discovery only, registration only, or any combination.
+
+---
+
 ## Pluggable auth pipeline (AppSync)
 
 The AppSync adapter ships with a no-op auth pass-through so the seed works out of the box. Real apps replace it.
@@ -246,9 +266,7 @@ The auth pipeline is an [AppSync JS function](https://docs.aws.amazon.com/appsyn
 ```ts
 appSyncAdapter({
   schemaFile: 'schema.graphql',
-  authPipeline: {
-    jsFile: 'resolvers/auth-pipeline.js',
-  },
+  authPipeline: { jsFile: 'resolvers/auth-pipeline.js' },
 });
 ```
 
@@ -258,10 +276,7 @@ import { util } from '@aws-appsync/utils';
 
 export function request(ctx) {
   const claims = ctx.identity?.claims ?? {};
-  if (!claims.sub) {
-    util.unauthorized();
-  }
-  // stash the claim shape your downstream resolvers care about
+  if (!claims.sub) util.unauthorized();
   ctx.stash.userId = claims.sub;
   ctx.stash.roles = (claims['custom:roles'] ?? '').split(',').filter(Boolean);
   return {};
