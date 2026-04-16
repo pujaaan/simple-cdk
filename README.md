@@ -6,12 +6,29 @@ simple-cdk is a thin layer on top of [AWS CDK](https://aws.amazon.com/cdk/). You
 
 ## Install
 
+Two options.
+
+### From npm
+
 ```bash
 npm install aws-cdk-lib constructs aws-cdk
 npm install @simple-cdk/core @simple-cdk/cli
-# adapters — install only the ones you need
+# adapters: install only the ones you need
 npm install @simple-cdk/lambda @simple-cdk/dynamodb @simple-cdk/appsync @simple-cdk/cognito
 ```
+
+### From git
+
+Use this if you want to hack on simple-cdk itself, run the bundled examples, or pin to a specific commit.
+
+```bash
+git clone https://github.com/pujaaan/simple-cdk.git
+cd simple-cdk
+npm install
+npm run build
+```
+
+The repo is an npm workspace, so one build at the root wires every package together.
 
 You'll also need:
 
@@ -76,8 +93,8 @@ Auto-discovers Lambda handlers from `backend/functions/`.
 ```
 backend/functions/
   hello/
-    handler.ts          # required — exports `handler`
-    config.ts           # optional — per-function options
+    handler.ts          # required, exports `handler`
+    config.ts           # optional, per-function options
 ```
 
 ```ts
@@ -184,7 +201,7 @@ simple-cdk deploy --stage prod -- --require-approval never --concurrency 4
 
 ## Customizing
 
-Adapters are plain objects matching the [`Adapter`](./packages/core/src/types.ts) interface. The engine doesn't care where they come from — built-in or yours, they're treated the same.
+Adapters are plain objects matching the [`Adapter`](./packages/core/src/types.ts) interface. The engine doesn't care where they come from. Built-in or yours, they're treated the same.
 
 ### Override a built-in adapter
 
@@ -216,7 +233,7 @@ export default defineConfig({
 
 ### Write your own adapter
 
-Anything not covered by a built-in adapter? Write one. It's a small interface — three optional hooks and a name.
+Anything not covered by a built-in adapter? Write one. It's a small interface: three optional hooks and a name.
 
 ```ts
 // adapters/sqs.ts
@@ -262,17 +279,17 @@ adapters: [
 
 The three hooks:
 
-- `discover(ctx)` — find what you're responsible for (scan files, read config, hit an API). Return a list of `Resource` objects.
-- `register(ctx)` — turn each resource into a CDK construct. Use `ctx.stack(name)` to get-or-create a stack.
-- `wire(ctx)` — runs after every adapter's `register`. Use `ctx.resourcesOf('lambda')` to look up other adapters' resources and connect them.
+- `discover(ctx)`: find what you're responsible for (scan files, read config, hit an API). Return a list of `Resource` objects.
+- `register(ctx)`: turn each resource into a CDK construct. Use `ctx.stack(name)` to get-or-create a stack.
+- `wire(ctx)`: runs after every adapter's `register`. Use `ctx.resourcesOf('lambda')` to look up other adapters' resources and connect them.
 
-All three are optional. See [docs/extending.md](./docs/extending.md) for a complete adapter walkthrough including filesystem discovery, cross-adapter wiring, and the AppSync auth pipeline.
+All three are optional. See [docs/Extending.md](./docs/Extending.md) for a complete adapter walkthrough including filesystem discovery, cross-adapter wiring, and the AppSync auth pipeline.
 
 ## Documentation
 
-- [Getting started](./docs/getting-started.md) — install, configure, deploy
-- [Architecture](./docs/architecture.md) — engine, adapters, lifecycle
-- [Customizing](./docs/extending.md) — override or write adapters
+- [Getting Started](./docs/Getting-Started.md) for install, configure, deploy
+- [Architecture](./docs/Architecture.md) for engine, adapters, lifecycle
+- [Extending](./docs/Extending.md) to override or write adapters
 
 ## Status
 

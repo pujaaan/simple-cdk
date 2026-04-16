@@ -15,10 +15,10 @@ import { defineConfig, Engine, scanFiles } from '@simple-cdk/core';
 import type { Adapter, AppConfig, Resource, RegisterContext, WireContext } from '@simple-cdk/core';
 ```
 
-- `defineConfig(config)` — type-safe identity helper for your `simple-cdk.config.ts`
-- `Engine` — runs the discover → register → wire lifecycle and returns a CDK App
-- `scanFiles(rootDir, opts)` — filesystem helper for adapters that scan for files
-- `Adapter`, `Resource`, `*Context` — the contract every adapter implements
+- `defineConfig(config)`: type-safe identity helper for your `simple-cdk.config.ts`
+- `Engine`: runs the discover → register → wire lifecycle and returns a CDK App
+- `scanFiles(rootDir, opts)`: filesystem helper for adapters that scan for files
+- `Adapter`, `Resource`, `*Context`: the contract every adapter implements
 
 ## Status
 

@@ -64,7 +64,7 @@ Skip it per-resolver with `bypassAuth: true`.
 
 ## When auto-CRUD isn't enough
 
-Drop down to a manual resolver — point at a JS file with your own request/response code:
+Drop down to a manual resolver. Point at a JS file with your own request/response code:
 
 ```ts
 resolvers: [

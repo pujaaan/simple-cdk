@@ -13,6 +13,10 @@ A first deploy from zero in about five minutes.
 
 ## Install
 
+You have two options.
+
+### Option A: install from npm (recommended)
+
 ```bash
 mkdir my-app && cd my-app
 npm init -y
@@ -23,7 +27,23 @@ npm install @simple-cdk/core @simple-cdk/cli
 npm install @simple-cdk/lambda @simple-cdk/appsync
 ```
 
-Install only the adapters you need — there's nothing magic about `lambda` or `appsync` here, they're separate packages.
+Install only the adapters you need. There's nothing magic about `lambda` or `appsync` here, they're separate packages.
+
+### Option B: clone the repo
+
+Use this when you want to hack on simple-cdk itself, run the bundled examples, or pin to a specific commit.
+
+```bash
+git clone https://github.com/pujaaan/simple-cdk.git
+cd simple-cdk
+npm install
+npm run build
+cd examples/01-minimal
+npm run list
+npm run deploy
+```
+
+The repo is an npm workspace, so building once at the root makes every package and example use your local copy.
 
 ## Configure
 
@@ -73,7 +93,7 @@ type Query {
 ```bash
 npx simple-cdk list                  # show what each adapter discovered
 npx simple-cdk synth                 # generate CloudFormation
-npx simple-cdk diff --stage dev      # diff against deployed stack
+npx simple-cdk diff --stage dev      # diff against deployed
 npx simple-cdk deploy --stage dev    # push to AWS
 npx simple-cdk destroy --stage dev   # tear it down
 ```
@@ -96,6 +116,6 @@ Each stage gets its own CloudFormation stacks, scoped as `<app>-<stage>-<stack>`
 
 ## What's next
 
-- [Home](./Home.md) — full reference for every built-in adapter
-- [Architecture](./architecture.md) — what the engine does and where adapters fit
-- [Extending](./extending.md) — override an adapter or write a new one
+- [Home](./Home.md) for the full reference of every built-in adapter
+- [Architecture](./Architecture.md) for what the engine does and where adapters fit
+- [Extending](./Extending.md) to override an adapter or write a new one

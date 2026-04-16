@@ -18,14 +18,31 @@ simple-cdk is a thin layer on top of [AWS CDK](https://aws.amazon.com/cdk/). You
 
 ## Install
 
+Two options.
+
+### From npm
+
 ```bash
 npm install aws-cdk-lib constructs aws-cdk
 npm install @simple-cdk/core @simple-cdk/cli
-# adapters — install only the ones you need
+# adapters: install only the ones you need
 npm install @simple-cdk/lambda @simple-cdk/dynamodb @simple-cdk/appsync @simple-cdk/cognito
 ```
 
-Requirements: Node 22+, AWS credentials, a bootstrapped CDK environment.
+### From git
+
+Use this if you want to hack on simple-cdk itself, run the bundled examples, or pin to a specific commit.
+
+```bash
+git clone https://github.com/pujaaan/simple-cdk.git
+cd simple-cdk
+npm install
+npm run build
+```
+
+The repo is an npm workspace, so one build at the root wires every package together.
+
+Requirements: Node 22+, AWS credentials, a bootstrapped CDK environment. See [[Getting-Started]] for the full prerequisites.
 
 ---
 
@@ -76,8 +93,8 @@ Auto-discovers Lambda handlers from `backend/functions/`.
 ```
 backend/functions/
   hello/
-    handler.ts       # required — exports `handler`
-    config.ts        # optional — per-function options
+    handler.ts       # required, exports `handler`
+    config.ts        # optional, per-function options
 ```
 
 ```ts
@@ -186,10 +203,10 @@ simple-cdk deploy --stage prod -- --require-approval never --concurrency 4
 
 ## Customizing
 
-Adapters are plain objects. Replace any built-in by passing your own. Write new ones for AWS services we don't ship — see [[Extending]] for the full walkthrough including filesystem discovery, cross-adapter wiring, and the AppSync auth pipeline.
+Adapters are plain objects. Replace any built-in by passing your own. Write new ones for AWS services we don't ship. See [[Extending]] for the full walkthrough including filesystem discovery, cross-adapter wiring, and the AppSync auth pipeline.
 
 ```ts
-// quickest custom adapter — three optional hooks and a name
+// quickest custom adapter: three optional hooks and a name
 const myAdapter: Adapter = {
   name: 'sqs',
   discover: (ctx) => [...],   // find what you're responsible for

@@ -2,9 +2,9 @@
 
 Three ways to bend simple-cdk to your needs, in order of how much code you'll write:
 
-1. **Configure** — pass options to a built-in adapter
-2. **Override** — replace a built-in adapter with your own
-3. **Add** — write a new adapter for something we don't ship
+1. **Configure**: pass options to a built-in adapter
+2. **Override**: replace a built-in adapter with your own
+3. **Add**: write a new adapter for something we don't ship
 
 All three coexist. You can configure most adapters, override one, and add a new one in the same project.
 
@@ -100,14 +100,14 @@ import type { Adapter } from '@simple-cdk/core';
 import { aws_lambda as lambda } from 'aws-cdk-lib';
 
 const myLambda: Adapter = {
-  name: 'lambda',                                   // same name → replaces the built-in
+  name: 'lambda',                                   // same name replaces the built-in
   discover: async (ctx) => {
-    return [{ type: 'lambda', name: 'foo', source: '...', config: { /* … */ } }];
+    return [{ type: 'lambda', name: 'foo', source: '...', config: { /* ... */ } }];
   },
   register: (ctx) => {
     const stack = ctx.stack('lambda');
     for (const r of ctx.resources) {
-      new lambda.Function(stack, r.name, { /* … */ });
+      new lambda.Function(stack, r.name, { /* ... */ });
     }
   },
 };
@@ -121,7 +121,7 @@ The engine matches adapters by `name` for the wire-phase lookup (`resourcesOf('l
 
 Same shape as overriding, just a new `name`. Example: an SQS adapter that auto-discovers queue definitions from disk.
 
-### Step 1 — define the resource shape
+### Step 1: define the resource shape
 
 ```ts
 // adapters/sqs/types.ts
@@ -143,7 +143,7 @@ export interface SqsResourceConfig {
 export type SqsResource = Resource<SqsResourceConfig> & { type: 'sqs-queue' };
 ```
 
-### Step 2 — write the adapter
+### Step 2: write the adapter
 
 ```ts
 // adapters/sqs/index.ts
@@ -208,7 +208,7 @@ export function getQueue(ctx: Pick<WireContext, 'resourcesOf'>, name: string): s
 }
 ```
 
-### Step 3 — use it
+### Step 3: use it
 
 ```ts
 import { sqsAdapter, getQueue } from './adapters/sqs/index.js';
@@ -249,9 +249,9 @@ interface Adapter {
 | Hook | What it gets | What it does |
 |------|--------------|--------------|
 | `discover` | `rootDir`, `config`, `log` | Scan filesystem (or anywhere) and return a list of `Resource` objects. Pure read. |
-| `register` | All of the above + the CDK `App`, `stack(name)`, this adapter's resources, all adapters' resources | Create CDK constructs. Stash the construct on the resource for the wire phase. |
-| `wire` | All of the above + `resourcesOf(adapterName)` | Cross-reference resources from other adapters and connect them. |
-| `commands` | — | Optional CLI commands this adapter contributes. |
+| `register` | All of the above plus the CDK `App`, `stack(name)`, this adapter's resources, all adapters' resources | Create CDK constructs. Stash the construct on the resource for the wire phase. |
+| `wire` | All of the above plus `resourcesOf(adapterName)` | Cross-reference resources from other adapters and connect them. |
+| `commands` | none | Optional CLI commands this adapter contributes. |
 
 All hooks are optional. An adapter can do discovery only, registration only, or any combination.
 
@@ -306,4 +306,12 @@ Use what we ship when:
 - You want fewer moving parts
 - You're prototyping
 
-The adapter contract is small enough that going from "I'll use the built-in" to "actually I need my own" is rarely a rewrite — most of the time you're swapping a constant for an import.
+The adapter contract is small enough that going from "I'll use the built-in" to "actually I need my own" is rarely a rewrite. Most of the time you're swapping a constant for an import.
+
+---
+
+## See also
+
+- [Home](./Home.md) for the full per-adapter reference
+- [Architecture](./Architecture.md) for how the engine works under the hood
+- [Getting Started](./Getting-Started.md) for installation and your first deploy

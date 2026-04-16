@@ -15,8 +15,8 @@ Each Lambda lives in its own folder under `backend/functions/<name>/`:
 ```
 backend/functions/
 ├── hello/
-│   ├── handler.ts          # required — exports `handler`
-│   └── config.ts           # optional — exports default LambdaFunctionConfig
+│   ├── handler.ts          # required, exports `handler`
+│   └── config.ts           # optional, exports default LambdaFunctionConfig
 └── ...
 ```
 

@@ -1,6 +1,6 @@
 # Example 02: With Models
 
-DynamoDB-backed model with auto-generated CRUD resolvers — no resolver code, no table boilerplate.
+DynamoDB-backed model with auto-generated CRUD resolvers. No resolver code, no table boilerplate.
 
 ## What it shows
 
@@ -30,7 +30,7 @@ The CRUD field names are derived from the model name: `getX`, `listXs`, `createX
 
 ## Out of CRUD's reach?
 
-Switch to a manual resolver for that field — point at a JS file with your own request/response code:
+Switch to a manual resolver for that field. Point at a JS file with your own request/response code:
 
 ```ts
 appSyncAdapter({

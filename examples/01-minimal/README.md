@@ -6,7 +6,7 @@ The smallest useful simple-cdk app: one Lambda, one AppSync query.
 
 - Discovering a Lambda handler from `backend/functions/<name>/handler.ts`
 - Wiring it to a GraphQL field via the `appSyncAdapter`
-- No database, no auth, no Cognito — just two adapters
+- No database, no auth, no Cognito, just two adapters
 
 ## Run
 
@@ -37,4 +37,4 @@ npm run deploy               # push to AWS (requires AWS credentials)
 { typeName: 'Query', fieldName: 'echo', source: { kind: 'lambda', lambdaName: 'echo' } }
 ```
 
-That's it — no CDK constructs, no `new NodejsFunction()`, no resolver wiring by hand.
+That's it. No CDK constructs, no `new NodejsFunction()`, no resolver wiring by hand.
