@@ -1,6 +1,7 @@
 {
   "name": "@simple-cdk/dynamodb",
   "version": "0.0.1",
+  "type": "module",
   "description": "simple-cdk adapter: discover model files and create DynamoDB tables.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

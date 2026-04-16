@@ -1,6 +1,7 @@
 {
   "name": "@simple-cdk/cognito",
   "version": "0.0.1",
+  "type": "module",
   "description": "simple-cdk adapter: Cognito user pool with auto-discovered Lambda triggers.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
