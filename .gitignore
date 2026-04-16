@@ -1,0 +1,16 @@
+node_modules/
+dist/
+*.log
+.DS_Store
+.env
+.env.local
+.env.*.local
+cdk.out/
+cdk.context.json
+.cdk.staging/
+coverage/
+.turbo/
+.nx/
+*.tsbuildinfo
+.vscode/
+.idea/
