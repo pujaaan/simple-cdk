@@ -1,0 +1,55 @@
+{
+  "name": "@simple-cdk/outputs",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "simple-cdk adapter: bundle stack outputs into a single SSM parameter (typical shape for frontends to read at build time).",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "watch": "tsc -p tsconfig.json -w",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run clean && npm run build"
+  },
+  "dependencies": {
+    "@simple-cdk/core": "1.0.0"
+  },
+  "peerDependencies": {
+    "aws-cdk-lib": "^2.160.0",
+    "constructs": "^10.3.0"
+  },
+  "devDependencies": {
+    "aws-cdk-lib": "^2.160.0",
+    "constructs": "^10.3.0",
+    "typescript": "^5.6.3"
+  },
+  "keywords": [
+    "aws",
+    "cdk",
+    "aws-cdk",
+    "ssm",
+    "parameter-store",
+    "outputs",
+    "frontend",
+    "serverless",
+    "typescript",
+    "adapter",
+    "simple-cdk"
+  ],
+  "author": "Pujan Bhatta <pujanb8854@gmail.com> (https://github.com/pujaaan)",
+  "license": "MIT",
+  "homepage": "https://github.com/pujaaan/simple-cdk/tree/main/packages/adapter-outputs#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pujaaan/simple-cdk.git",
+    "directory": "packages/adapter-outputs"
+  },
+  "bugs": "https://github.com/pujaaan/simple-cdk/issues",
+  "publishConfig": {
+    "access": "public"
+  }
+}
