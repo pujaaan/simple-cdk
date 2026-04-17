@@ -1,6 +1,6 @@
 {
   "name": "@simple-cdk/appsync",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "type": "module",
   "description": "simple-cdk adapter: AppSync GraphQL API with pluggable auth pipeline and auto-generated CRUD resolvers.",
   "main": "dist/index.js",

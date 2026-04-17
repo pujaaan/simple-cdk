@@ -1,6 +1,6 @@
 {
   "name": "@simple-cdk/outputs",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "type": "module",
   "description": "simple-cdk adapter: bundle stack outputs into a single SSM parameter (typical shape for frontends to read at build time).",
   "main": "dist/index.js",

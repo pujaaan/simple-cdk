@@ -1,6 +1,6 @@
 {
   "name": "simple-cdk",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "type": "module",
   "description": "Simple CLI for AWS CDK — init, list, synth, diff, deploy, destroy. Convention-over-configuration serverless on AWS Lambda, DynamoDB, AppSync, and Cognito.",
   "main": "dist/index.js",

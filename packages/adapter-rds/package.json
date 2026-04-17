@@ -1,6 +1,6 @@
 {
   "name": "@simple-cdk/rds",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "type": "module",
   "description": "simple-cdk adapter: RDS instance (Postgres or MySQL) with VPC + managed secret, designed to compose with the lambda adapter.",
   "main": "dist/index.js",
