@@ -122,13 +122,16 @@ function colorStatus(status: string): string {
 
 type Classification = 'hide' | 'warn' | 'error';
 
-// Classify a line for display. Returns null to defer to stream-based
-// coloring (stderr → red, stdout → dim). Ordering matters — noise
-// patterns run first so esbuild/npm chatter can't be misread as an error.
+// Classify a line by CONTENT, not by source stream. Unclassified lines
+// fall through to dim — cdk + esbuild + npm all emit progress on stderr
+// that isn't an error, so stream-based red would cry wolf on routine
+// chatter. Real failures surface via the command's non-zero exit code,
+// not stderr color. Ordering matters — noise + warning patterns run
+// before the error checks so advisories can't get misread as errors.
 function classify(line: string): Classification | null {
   if (!line.trim()) return 'hide';
 
-  // Noise — bundling + npm install chatter we never want to see.
+  // Noise — hide entirely.
   if (/^Bundling asset/.test(line)) return 'hide';
   if (/^\s*\.\.\..*-building\//.test(line)) return 'hide';
   if (/^\s*\.\.\..*dling-temp/.test(line)) return 'hide';
@@ -138,23 +141,30 @@ function classify(line: string): Classification | null {
   if (/^found \d+ vulnerabilit/.test(line)) return 'hide';
   if (/^\d+ package(s)? (are|is) looking for funding/.test(line)) return 'hide';
   if (/^\s*run `npm fund`/.test(line)) return 'hide';
+  // cdk per-stack build progress — one start + one success per stack, pure chatter.
+  if (/^\S+:\s+(start|success):\s+(Building|Built)\b/.test(line)) return 'hide';
 
   // Warnings — deprecations + advisory chatter, everything yellow.
   if (/\[WARNING\]/.test(line)) return 'warn';
+  if (/^\s*\[Info at\s/.test(line)) return 'warn';
   if (/deprecated\./i.test(line)) return 'warn';
   if (/^\s*The scope argument/.test(line)) return 'warn';
   if (/^\s*This API will be removed/.test(line)) return 'warn';
   if (/^npm (warn|notice)\b/i.test(line)) return 'warn';
 
-  // Explicit errors — tag red regardless of stream.
+  // Errors — explicit markers only. Keep this list tight; unclassified
+  // lines fall through to dim so new cdk chatter doesn't render red.
   if (/^❌/.test(line)) return 'error';
   if (/^\s*Error:/i.test(line)) return 'error';
   if (/^npm (err|error)\b/i.test(line)) return 'error';
+  if (/^Since this app includes/.test(line)) return 'error';
+  if (/^Deployment failed/i.test(line)) return 'error';
+  if (/\bfailed:\s/i.test(line)) return 'error';
 
   return null;
 }
 
-function emitClassified(line: string, source: StreamSource): void {
+function emitClassified(line: string, _source: StreamSource): void {
   const c = classify(line);
   if (c === 'hide') return;
   if (c === 'warn') {
@@ -165,8 +175,8 @@ function emitClassified(line: string, source: StreamSource): void {
     process.stderr.write(red(line) + '\n');
     return;
   }
-  if (source === 'stderr') process.stderr.write(red(line) + '\n');
-  else console.log(dim(line));
+  // Unclassified — always dim, regardless of source stream.
+  console.log(dim(line));
 }
 
 function pad(s: string, width: number): string {

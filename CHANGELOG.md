@@ -4,6 +4,12 @@ All notable changes are documented here. The format follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+## [4.2.3] - 2026-04-16
+
+### Fixed
+
+- **CLI deploy/diff formatter no longer paints cdk progress chatter red.** The v4.2.2 classifier still fell back to stream-based coloring for unclassified lines, so cdk's per-stack `start/success: Building/Built` progress and `[Info at ...]` advisories (both written on stderr) leaked through as red. The fallback now renders dim regardless of stream — real failures surface via non-zero exit code, not stderr color — and `[Info at ...]` / cdk per-stack build progress are classified explicitly (yellow + hidden, respectively). New explicit error patterns: `Since this app includes`, `Deployment failed`, `<x> failed: <y>`.
+
 ## [4.2.2] - 2026-04-16
 
 ### Changed
