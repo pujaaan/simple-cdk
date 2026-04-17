@@ -46,6 +46,7 @@ import type { DynamoDbModelConfig } from '@simple-cdk/dynamodb';
 
 const todo: DynamoDbModelConfig = {
   name: 'todo',
+  // tableName: 'my-existing-table',           // full name override (adopt existing table)
   pk: { name: 'id', type: 'string' },
   sk: { name: 'sk', type: 'string' },          // optional sort key
   gsis: [

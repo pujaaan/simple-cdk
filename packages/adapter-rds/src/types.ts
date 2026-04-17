@@ -31,8 +31,36 @@ export interface RdsAdapterOptions {
    * `getRdsInstance(ctx).connections.allowDefaultPortFrom(fn)`.
    */
   securityGroup?: aws_ec2.ISecurityGroup;
-  /** Secret name suffix. Full name: '<app>-<stage>-<suffix>'. Default: 'db'. */
+  /**
+   * Secret name in Secrets Manager. Default: `${app}-${stage}-db`.
+   * Set verbatim when adopting an existing deployment.
+   * Ignored if `credentials` is set.
+   */
   secretName?: string;
+  /**
+   * Escape hatch for credentials. Pass any `rds.Credentials` — e.g.
+   * `rds.Credentials.fromPassword('admin', SecretValue.unsafePlainText('...'))`
+   * or `rds.Credentials.fromSecret(existingSecret)` — to override the default
+   * generated-secret behavior. Use when adopting an existing instance or when
+   * CSI-style plaintext creds are required.
+   */
+  credentials?: aws_rds.Credentials;
+  /**
+   * Storage type. Default: CDK's default (GP2 historically; AWS is moving
+   * to GP3 but CDK hasn't changed). Pass `'gp3'` / `'gp2'` / `'io1'` etc.
+   */
+  storageType?: aws_rds.StorageType;
+  /** Max autoscaling storage (GB). Omit to disable storage autoscaling. */
+  maxAllocatedStorageGb?: number;
+  /** Override storage encryption. Default: true. Set to false only when adopting an unencrypted existing instance. */
+  storageEncrypted?: boolean;
+  /**
+   * Full DB instance identifier (the AWS resource name, not the CF logical ID).
+   * Use when adopting an existing deployed instance whose identifier doesn't
+   * match the CF-generated default — otherwise CloudFormation treats the name
+   * change as replace (data loss).
+   */
+  instanceIdentifier?: string;
   /** Stack name to register the instance under. Default: 'data'. */
   stackName?: string;
   /**
@@ -55,7 +83,8 @@ export interface RdsAdapterOptions {
 
 export interface BuiltRds {
   instance: aws_rds.DatabaseInstance;
-  secret: aws_secretsmanager.ISecret;
+  /** Undefined when credentials were supplied via `fromPassword` (no generated secret). */
+  secret: aws_secretsmanager.ISecret | undefined;
   vpc: aws_ec2.IVpc;
   securityGroup: aws_ec2.ISecurityGroup;
 }

@@ -32,7 +32,7 @@ export function getBuiltApi(ctx: Pick<WireContext, 'app'>): BuiltApi | undefined
 
 export function buildApi(ctx: RegisterContext, opts: AppSyncAdapterOptions): BuiltApi {
   const stack = opts.stack ?? ctx.stack(opts.stackName ?? 'api', opts.stackId ? { id: opts.stackId } : undefined);
-  const apiName = `${ctx.config.app}-${ctx.config.stage}-${opts.apiName ?? 'api'}`;
+  const apiName = opts.apiName ?? `${ctx.config.app}-${ctx.config.stage}-api`;
 
   const schemaPath = resolve(ctx.config.rootDir, opts.schemaFile);
   const schema = appsync.SchemaFile.fromAsset(schemaPath);

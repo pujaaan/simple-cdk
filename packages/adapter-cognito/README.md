@@ -39,12 +39,15 @@ export default defineConfig({
   stages: { dev: { region: 'us-east-1' } },
   adapters: [
     cognitoAdapter({
-      poolName: 'users',                  // default
+      // userPoolName: 'my-pool',         // default: '<app>-<stage>-users'
       triggersDir: 'backend/triggers',    // default
       stackName: 'auth',
       signInAlias: 'email',
       selfSignUp: true,
       mfa: 'off',                         // 'off' | 'optional' | 'required'
+      // mfaSecondFactor: { sms: true, otp: true }, // second factors when MFA on
+      // userVerification: { emailSubject: '...', emailBody: '...' },
+      // clientAuthFlows: { custom: true }, // for define/create/verify-auth-challenge OTP flow
       passwordPolicy: { minLength: 12, requireSymbols: true },
     }),
   ],

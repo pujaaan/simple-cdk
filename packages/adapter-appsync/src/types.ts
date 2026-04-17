@@ -76,7 +76,11 @@ import type { Stack } from 'aws-cdk-lib';
 export interface AppSyncAdapterOptions {
   /** Path to the GraphQL schema file. Required. */
   schemaFile: string;
-  /** API name suffix. Default: 'api'. Full name: '<app>-<stage>-<suffix>'. */
+  /**
+   * AppSync API name (the AWS resource name, not the CF logical ID).
+   * Default: `${app}-${stage}-api`. Set verbatim when adopting an existing
+   * deployed API — CloudFormation treats name changes as replace.
+   */
   apiName?: string;
   /**
    * Pin the CloudFormation logical ID for the GraphqlApi. Use when adopting

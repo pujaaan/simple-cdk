@@ -32,8 +32,13 @@ export interface CognitoAdapterOptions {
    * different logical ID. Default: `'UserPool'`.
    */
   userPoolConstructId?: string;
-  /** User pool name suffix. Default: 'users'. */
-  poolName?: string;
+  /**
+   * User pool name (the AWS resource name, not the CF logical ID).
+   * Default: `${app}-${stage}-users`. Set verbatim when adopting an
+   * existing deployed pool — CloudFormation treats name changes as
+   * replace (user loss).
+   */
+  userPoolName?: string;
   /** Path to discover trigger handlers. Default: 'backend/triggers'. */
   triggersDir?: string;
   /** Stack to register the user pool under. Default: 'auth'. */
@@ -60,8 +65,27 @@ export interface CognitoAdapterOptions {
   passwordPolicy?: aws_cognito.PasswordPolicy;
   /** MFA settings. Default: OFF. */
   mfa?: 'off' | 'optional' | 'required';
+  /**
+   * Which second factors are enabled when `mfa` is 'optional' or 'required'.
+   * Pass `{ sms: true, otp: true }` for SMS + TOTP. Default: `{ sms: true }`
+   * (matches the CDK default when MFA is turned on).
+   */
+  mfaSecondFactor?: aws_cognito.MfaSecondFactor;
+  /**
+   * Email/SMS verification message overrides. Use when customizing the
+   * subject and body of the verification email/SMS the pool sends on
+   * self-signup.
+   */
+  userVerification?: aws_cognito.UserVerificationConfig;
   /** App client name. Default: 'web'. */
   clientName?: string;
+  /**
+   * Auth flows enabled on the app client. Default:
+   * `{ userSrp: true, userPassword: true }`. Pass `{ custom: true }` to
+   * enable the custom auth flow used by define/create/verify-auth-challenge
+   * triggers (e.g. OTP).
+   */
+  clientAuthFlows?: aws_cognito.AuthFlow;
   /**
    * Pin the CloudFormation logical ID for the app client. Use when adopting
    * simple-cdk over an existing pool whose client was created under a

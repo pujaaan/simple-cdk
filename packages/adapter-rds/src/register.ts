@@ -38,6 +38,12 @@ export function registerRdsInstance(ctx: RegisterContext, opts: RdsAdapterOption
   const isProd = ctx.config.stage === 'prod';
   const databaseName = opts.databaseName ?? sanitizeDbName(ctx.config.app);
 
+  const credentials =
+    opts.credentials ??
+    rds.Credentials.fromGeneratedSecret('admin', {
+      secretName: opts.secretName ?? `${ctx.config.app}-${ctx.config.stage}-db`,
+    });
+
   const instance = new rds.DatabaseInstance(stack, opts.instanceConstructId ?? 'DbInstance', {
     engine: toEngine(opts),
     vpc,
@@ -45,23 +51,20 @@ export function registerRdsInstance(ctx: RegisterContext, opts: RdsAdapterOption
     publiclyAccessible: opts.publiclyAccessible ?? false,
     instanceType: toInstanceType(opts.instanceClass ?? 't4g.micro'),
     allocatedStorage: opts.allocatedStorageGb ?? 20,
-    multiAz: opts.multiAz ?? false,
-    credentials: rds.Credentials.fromGeneratedSecret('admin', {
-      secretName: `${ctx.config.app}-${ctx.config.stage}-${opts.secretName ?? 'db'}`,
-    }),
+    maxAllocatedStorage: opts.maxAllocatedStorageGb,
+    storageType: opts.storageType,
+    credentials,
+    instanceIdentifier: opts.instanceIdentifier,
     databaseName,
     securityGroups: [securityGroup],
     backupRetention: Duration.days(opts.backupRetentionDays ?? (isProd ? 14 : 7)),
     deletionProtection: opts.deletionProtection ?? (removal === RemovalPolicy.RETAIN),
     removalPolicy: removal,
-    storageEncrypted: true,
+    storageEncrypted: opts.storageEncrypted ?? true,
   });
 
-  if (!instance.secret) {
-    throw new Error('RDS adapter expected a generated secret on the instance — CDK did not provide one.');
-  }
-
-  const built: BuiltRds = { instance, secret: instance.secret, vpc, securityGroup };
+  const secret = instance.secret;
+  const built: BuiltRds = { instance, secret, vpc, securityGroup };
   cache.set(ctx.app, built);
   return built;
 }

@@ -24,6 +24,7 @@ export default defineConfig({
     dynamoDbAdapter(),
     appSyncAdapter({
       schemaFile: 'schema.graphql',
+      // apiName: 'my-api',                  // default: '<app>-<stage>-api'
       generateCrud: { models: 'all', softDelete: false },
       resolvers: [
         {

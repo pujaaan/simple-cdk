@@ -25,7 +25,7 @@ export function registerTables(ctx: RegisterContext, opts: DynamoDbAdapterOption
       cfg.stream ?? (cfg.streamTargets && cfg.streamTargets.length > 0 ? 'NEW_AND_OLD_IMAGES' : undefined);
 
     const table = new ddb.Table(stack, id, {
-      tableName: `${ctx.config.app}-${ctx.config.stage}-${resource.name}`,
+      tableName: cfg.tableName ?? `${ctx.config.app}-${ctx.config.stage}-${resource.name}`,
       partitionKey: toAttribute(cfg.pk),
       sortKey: cfg.sk ? toAttribute(cfg.sk) : undefined,
       billingMode:

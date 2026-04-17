@@ -29,7 +29,7 @@ export function registerUserPool(ctx: RegisterContext, opts: CognitoAdapterOptio
   const removal = removalPolicyFromStage(ctx.config.stageConfig.removalPolicy);
 
   const userPool = new cognito.UserPool(stack, opts.userPoolConstructId ?? 'UserPool', {
-    userPoolName: `${ctx.config.app}-${ctx.config.stage}-${opts.poolName ?? 'users'}`,
+    userPoolName: opts.userPoolName ?? `${ctx.config.app}-${ctx.config.stage}-users`,
     selfSignUpEnabled: opts.selfSignUp ?? true,
     signInAliases: signInAliasFor(opts.signInAlias ?? 'email'),
     standardAttributes: opts.standardAttributes ?? { email: { required: true, mutable: true } },
@@ -43,6 +43,8 @@ export function registerUserPool(ctx: RegisterContext, opts: CognitoAdapterOptio
       tempPasswordValidity: Duration.days(7),
     },
     mfa: mfaFromOption(opts.mfa ?? 'off'),
+    mfaSecondFactor: opts.mfaSecondFactor,
+    userVerification: opts.userVerification,
     accountRecovery: cognito.AccountRecovery.EMAIL_ONLY,
     removalPolicy: removal,
   });
@@ -69,7 +71,7 @@ export function registerUserPool(ctx: RegisterContext, opts: CognitoAdapterOptio
   }
 
   const client = userPool.addClient(opts.clientConstructId ?? opts.clientName ?? 'web', {
-    authFlows: { userSrp: true, userPassword: true },
+    authFlows: opts.clientAuthFlows ?? { userSrp: true, userPassword: true },
     preventUserExistenceErrors: true,
     refreshTokenValidity: Duration.days(30),
     accessTokenValidity: Duration.hours(1),

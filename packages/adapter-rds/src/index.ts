@@ -33,6 +33,12 @@ export function getRdsInstance(ctx: Pick<WireContext, 'app'>): aws_rds.DatabaseI
 export function getRdsSecret(ctx: Pick<WireContext, 'app'>): aws_secretsmanager.ISecret {
   const built = getBuiltRds(ctx);
   if (!built) throw new Error('RDS not built — did the rds adapter run?');
+  if (!built.secret) {
+    throw new Error(
+      'RDS adapter has no managed secret — credentials were supplied via `fromPassword`. ' +
+        'Access the password directly from your `credentials` option instead.',
+    );
+  }
   return built.secret;
 }
 

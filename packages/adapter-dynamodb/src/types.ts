@@ -75,6 +75,13 @@ export interface DynamoDbModelConfig {
    * Defaults to `${PascalCase(name)}Table`.
    */
   constructId?: string;
+  /**
+   * Full DynamoDB table name (the AWS resource name, not the CF logical ID).
+   * Use when adopting an existing deployed table whose name doesn't match
+   * the default `${app}-${stage}-${name}` template — otherwise CloudFormation
+   * treats the name change as replace (data loss).
+   */
+  tableName?: string;
   pk: KeyDef;
   sk?: KeyDef;
   gsis?: GsiConfig[];
