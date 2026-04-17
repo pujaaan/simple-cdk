@@ -78,6 +78,12 @@ export interface AppSyncAdapterOptions {
   schemaFile: string;
   /** API name suffix. Default: 'api'. Full name: '<app>-<stage>-<suffix>'. */
   apiName?: string;
+  /**
+   * Pin the CloudFormation logical ID for the GraphqlApi. Use when adopting
+   * simple-cdk over an existing stack whose API was created under a
+   * different logical ID. Default: `'Api'`.
+   */
+  apiConstructId?: string;
   /** Stack to register the API under. Default: 'api'. */
   stackName?: string;
   /**

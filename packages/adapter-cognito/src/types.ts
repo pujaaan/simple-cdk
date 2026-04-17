@@ -62,4 +62,17 @@ export interface CognitoAdapterOptions {
   mfa?: 'off' | 'optional' | 'required';
   /** App client name. Default: 'web'. */
   clientName?: string;
+  /**
+   * Pin the CloudFormation logical ID for the app client. Use when adopting
+   * simple-cdk over an existing pool whose client was created under a
+   * different logical ID. Default: derived from `clientName`.
+   */
+  clientConstructId?: string;
+  /**
+   * Pin the CloudFormation logical IDs for discovered trigger Lambda
+   * functions. Keys are trigger names (`pre-sign-up`, etc.); values are
+   * the verbatim logical IDs. Omitted triggers fall back to the default
+   * `Trigger${PascalCase(name)}`.
+   */
+  triggerConstructIds?: Partial<Record<TriggerName, string>>;
 }

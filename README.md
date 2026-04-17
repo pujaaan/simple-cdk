@@ -249,13 +249,15 @@ Runs in the wire phase, so every other adapter's resources are already registere
 
 ### CLI
 
-| Command              | What it does                                                          |
-| -------------------- | --------------------------------------------------------------------- |
-| `simple-cdk list`    | Run discovery and print what each adapter found. No synth, no deploy. |
-| `simple-cdk synth`   | Generate CloudFormation.                                              |
-| `simple-cdk diff`    | Diff against the deployed stack.                                      |
-| `simple-cdk deploy`  | Push to AWS.                                                          |
-| `simple-cdk destroy` | Tear down stacks.                                                     |
+| Command                             | What it does                                                          |
+| ----------------------------------- | --------------------------------------------------------------------- |
+| `simple-cdk list`                   | Run discovery and print what each adapter found. No synth, no deploy. |
+| `simple-cdk create <kind> <name>`   | Scaffold a `model`, `function`, or `trigger`.                         |
+| `simple-cdk generate-schema`        | Emit `schema.graphql` from discovered DynamoDB models.                |
+| `simple-cdk synth`                  | Generate CloudFormation.                                              |
+| `simple-cdk diff`                   | Diff against the deployed stack.                                      |
+| `simple-cdk deploy`                 | Push to AWS.                                                          |
+| `simple-cdk destroy`                | Tear down stacks.                                                     |
 
 Flags: `--stage <name>` to pick a stage (default: `defaultStage` in config). Anything after `--` is forwarded to the underlying `cdk` CLI:
 

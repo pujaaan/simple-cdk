@@ -10,11 +10,15 @@ export type {
   DynamoDbAdapterOptions,
   DynamoDbModelConfig,
   DynamoDbResource,
+  GraphqlScalar,
   GsiConfig,
   KeyDef,
+  ModelAttribute,
   StreamMode,
   StreamTargetOptions,
 } from './types.js';
+export { generateGraphQLSchema } from './schema.js';
+export type { GenerateSchemaOptions } from './schema.js';
 
 const DEFAULT_MATCH = ['.model.ts', '.model.mts', '.model.js', '.model.mjs'];
 

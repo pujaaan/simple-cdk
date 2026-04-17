@@ -1,6 +1,8 @@
 import { parseArgs } from './args.js';
 import { listCommand } from './commands/list.js';
 import { initCommand } from './commands/init.js';
+import { createCommand } from './commands/create.js';
+import { generateSchemaCommand } from './commands/generate-schema.js';
 import { makeCdkCommand } from './commands/cdk-passthrough.js';
 import { helpCommand } from './commands/help.js';
 
@@ -20,6 +22,12 @@ export async function run(argv: string[]): Promise<void> {
       return;
     case 'init':
       await initCommand();
+      return;
+    case 'create':
+      await createCommand(args);
+      return;
+    case 'generate-schema':
+      await generateSchemaCommand(args);
       return;
     case 'list':
       await listCommand(args);

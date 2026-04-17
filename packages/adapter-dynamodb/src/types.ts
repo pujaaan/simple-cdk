@@ -8,6 +8,27 @@ export interface KeyDef {
   type?: AttrType;
 }
 
+/**
+ * GraphQL scalar types understood by the optional schema generator.
+ * `AWSDateTime` / `AWSJSON` are AppSync scalars; the rest are standard.
+ */
+export type GraphqlScalar =
+  | 'ID'
+  | 'String'
+  | 'Int'
+  | 'Float'
+  | 'Boolean'
+  | 'AWSDateTime'
+  | 'AWSJSON';
+
+export interface ModelAttribute {
+  type: GraphqlScalar;
+  /** Whether the field is non-null in `type <Model>`. Default: false. */
+  required?: boolean;
+  /** Wrap the field as a list, e.g. `[String!]`. Default: false. */
+  list?: boolean;
+}
+
 export interface GsiConfig {
   name: string;
   pk: KeyDef;
@@ -67,6 +88,13 @@ export interface DynamoDbModelConfig {
   streamTargets?: string[];
   /** EventSourceMapping options applied to every `streamTargets` consumer. */
   streamTargetOptions?: StreamTargetOptions;
+  /**
+   * Non-key attributes, declared only for schema generation — DynamoDB
+   * itself remains schemaless. Used by `generateGraphQLSchema()` to emit
+   * the `type <Model>` / `input Create<Model>Input` / `input Update<Model>Input`
+   * shapes. Omit to keep models schemaless and hand-write `schema.graphql`.
+   */
+  attributes?: Record<string, ModelAttribute>;
   ttlAttribute?: string;
   billingMode?: 'PAY_PER_REQUEST' | 'PROVISIONED';
   pointInTimeRecovery?: boolean;

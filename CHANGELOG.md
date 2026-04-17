@@ -11,6 +11,11 @@ All notable changes are documented here. The format follows [Keep a Changelog](h
 - **`@simple-cdk/dynamodb`**: `streamTargets` on a model config — name one or more Lambdas and the wire phase attaches a `DynamoEventSource` to each. `streamTargetOptions` surfaces the common `EventSourceMapping` knobs (starting position, batch size, retry, parallelization, batch-item failures).
 - **`@simple-cdk/core`**: `standardLayout()` preset exposing a nested `backend/` layout (auth, tables, functions, api). Opt-in — adapter defaults remain flat.
 - **`@simple-cdk/core`**: `StackOptions` on `ctx.stack(name, opts?)` with an `id` override to pin a stack's CloudFormation logical ID verbatim. Surfaced by the rds, outputs, dynamodb, and cognito adapters as `stackId`.
+- **`simple-cdk init`**: now prompts for `@simple-cdk/rds` (with Postgres/MySQL engine choice) and `@simple-cdk/outputs`, installs the right packages, and scaffolds a working starter config line.
+- **`simple-cdk create <kind> <name>`**: new scaffolding subcommand for `model`, `function`, and `trigger`. Validates Cognito trigger names; supports `--dir` to override the default path.
+- **`simple-cdk generate-schema`**: emit a `schema.graphql` covering `type <Model>`, `type <Model>Connection`, `Create<Model>Input` / `Update<Model>Input`, and Query/Mutation fields from every discovered DynamoDB model. Pair with `appSyncAdapter({ generateCrud: { models: 'all' } })` to wire the emitted operations to auto-CRUD resolvers. `--out <path>` overrides the target file.
+- **`@simple-cdk/dynamodb`**: new `attributes` field on `DynamoDbModelConfig` — declare non-key fields with GraphQL scalar types (`ID`, `String`, `Int`, `Float`, `Boolean`, `AWSDateTime`, `AWSJSON`) for the schema generator. DynamoDB itself remains schemaless. Exports `generateGraphQLSchema()` as a library entry point.
+- **Construct ID overrides** for primary constructs: `apiConstructId` (appsync), `clientConstructId` + `triggerConstructIds` (cognito), `parameterConstructId` (outputs). Combined with the existing `constructId` on Lambda and DynamoDB and `instanceConstructId` on RDS, every top-level adapter construct can now be pinned to a verbatim CloudFormation logical ID — making it safe to adopt simple-cdk over an existing stack without delete-and-recreate.
 
 ## [0.0.1] - 2026-04-16
 
@@ -29,7 +34,4 @@ Initial release.
 
 ### Known gaps (planned)
 
-- No CloudFormation logical-ID preservation map. Fresh deploys only; safe migration of existing AWS resources comes in a later release (partial: `stackId` on the stack factory, `constructId` on DynamoDB models)
-- No schema generation from models. Write `schema.graphql` by hand
-- No interactive scaffolding (`simple-cdk create model <name>`)
-- `init` doesn't prompt for `@simple-cdk/rds` or `@simple-cdk/outputs` yet — install and wire them manually for now
+- All gaps listed at 0.0.1 — logical-ID preservation for every primary construct, schema generation from models, `simple-cdk create`, and init coverage for rds/outputs — are addressed in Unreleased. Remaining: GSI-aware `by<Gsi>` query fields in schema generation, and reversible stack-id renames (CF logical-ID preservation is still opt-in per construct rather than automatic).

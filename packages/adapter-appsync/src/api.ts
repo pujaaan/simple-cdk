@@ -37,7 +37,7 @@ export function buildApi(ctx: RegisterContext, opts: AppSyncAdapterOptions): Bui
   const schemaPath = resolve(ctx.config.rootDir, opts.schemaFile);
   const schema = appsync.SchemaFile.fromAsset(schemaPath);
 
-  const api = new appsync.GraphqlApi(stack, 'Api', {
+  const api = new appsync.GraphqlApi(stack, opts.apiConstructId ?? 'Api', {
     name: apiName,
     schema,
     authorizationConfig: { defaultAuthorization: toAuthMode(opts.authorization ?? { kind: 'api-key' }) },

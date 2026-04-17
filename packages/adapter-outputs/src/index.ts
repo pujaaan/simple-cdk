@@ -32,6 +32,11 @@ export interface OutputsAdapterOptions {
    * the `<app>-<stage>-` prefix.
    */
   stackId?: string;
+  /**
+   * Pin the CloudFormation logical ID of the SSM parameter construct.
+   * Default: `'BundledOutputs'`.
+   */
+  parameterConstructId?: string;
 }
 
 /**
@@ -46,7 +51,7 @@ export function outputsAdapter(opts: OutputsAdapterOptions): Adapter {
       const paramName = opts.parameterName ?? `/${ctx.config.app}/${ctx.config.stage}/outputs`;
       const stack = ctx.stack(opts.stackName ?? 'outputs', opts.stackId ? { id: opts.stackId } : undefined);
 
-      new ssm.StringParameter(stack, 'BundledOutputs', {
+      new ssm.StringParameter(stack, opts.parameterConstructId ?? 'BundledOutputs', {
         parameterName: paramName,
         stringValue: JSON.stringify(values),
         description: `Bundled outputs for ${ctx.config.app} (${ctx.config.stage}).`,

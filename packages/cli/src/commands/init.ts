@@ -15,7 +15,10 @@ interface InitChoices {
     dynamodb: boolean;
     appsync: boolean;
     cognito: boolean;
+    rds: boolean;
+    outputs: boolean;
   };
+  rdsEngine?: 'postgres' | 'mysql';
 }
 
 export async function initCommand(): Promise<void> {
@@ -69,8 +72,28 @@ async function collectChoices(rl: Interface, cwd: string): Promise<InitChoices> 
   const dynamodb = await confirm(rl, 'Add @simple-cdk/dynamodb?', true);
   const appsync = await confirm(rl, 'Add @simple-cdk/appsync?', true);
   const cognito = await confirm(rl, 'Add @simple-cdk/cognito?', false);
+  const rds = await confirm(rl, 'Add @simple-cdk/rds (Postgres/MySQL)?', false);
+  const outputs = await confirm(
+    rl,
+    'Add @simple-cdk/outputs (bundled SSM parameter for frontends)?',
+    false,
+  );
 
-  return { appName, region, stage, adapters: { lambda, dynamodb, appsync, cognito } };
+  let rdsEngine: 'postgres' | 'mysql' | undefined;
+  if (rds) {
+    const answer = (await rl.question('  RDS engine? (postgres/mysql, default postgres): '))
+      .trim()
+      .toLowerCase();
+    rdsEngine = answer === 'mysql' ? 'mysql' : 'postgres';
+  }
+
+  return {
+    appName,
+    region,
+    stage,
+    adapters: { lambda, dynamodb, appsync, cognito, rds, outputs },
+    rdsEngine,
+  };
 }
 
 async function confirm(rl: Interface, question: string, defaultYes: boolean): Promise<boolean> {
@@ -121,6 +144,8 @@ async function runNpmInstall(cwd: string, choices: InitChoices): Promise<void> {
   if (choices.adapters.dynamodb) pkgs.push(`@simple-cdk/dynamodb@${version}`);
   if (choices.adapters.appsync) pkgs.push(`@simple-cdk/appsync@${version}`);
   if (choices.adapters.cognito) pkgs.push(`@simple-cdk/cognito@${version}`);
+  if (choices.adapters.rds) pkgs.push(`@simple-cdk/rds@${version}`);
+  if (choices.adapters.outputs) pkgs.push(`@simple-cdk/outputs@${version}`);
 
   console.log(`  Installing: ${pkgs.join(' ')}`);
   await runCommand('npm', ['install', ...pkgs], cwd);
@@ -173,6 +198,20 @@ async function writeConfigFile(cwd: string, choices: InitChoices): Promise<void>
   if (choices.adapters.cognito) {
     imports.push(`import { cognitoAdapter } from '@simple-cdk/cognito';`);
     adapterLines.push(`    cognitoAdapter(),`);
+  }
+  if (choices.adapters.rds) {
+    imports.push(`import { rdsAdapter } from '@simple-cdk/rds';`);
+    adapterLines.push(`    rdsAdapter({ engine: '${choices.rdsEngine ?? 'postgres'}' }),`);
+  }
+  if (choices.adapters.outputs) {
+    imports.push(`import { outputsAdapter } from '@simple-cdk/outputs';`);
+    adapterLines.push(
+      `    outputsAdapter({`,
+      `      // Return values here — they'll be bundled into one SSM parameter`,
+      `      // at /<app>/<stage>/outputs and also emitted as CfnOutputs.`,
+      `      collect: () => ({}),`,
+      `    }),`,
+    );
   }
 
   const content = `${imports.join('\n')}

@@ -49,7 +49,9 @@ export function registerUserPool(ctx: RegisterContext, opts: CognitoAdapterOptio
 
   const triggers = new Map<TriggerName, lambdaNode.NodejsFunction>();
   for (const resource of ctx.resources as TriggerResource[]) {
-    const fn = new lambdaNode.NodejsFunction(stack, `Trigger${pascal(resource.name)}`, {
+    const triggerId =
+      opts.triggerConstructIds?.[resource.config.trigger] ?? `Trigger${pascal(resource.name)}`;
+    const fn = new lambdaNode.NodejsFunction(stack, triggerId, {
       entry: resource.config.handlerFile,
       handler: 'handler',
       runtime: lambda.Runtime.NODEJS_20_X,
@@ -66,7 +68,7 @@ export function registerUserPool(ctx: RegisterContext, opts: CognitoAdapterOptio
     resource.config.construct = fn;
   }
 
-  const client = userPool.addClient(opts.clientName ?? 'web', {
+  const client = userPool.addClient(opts.clientConstructId ?? opts.clientName ?? 'web', {
     authFlows: { userSrp: true, userPassword: true },
     preventUserExistenceErrors: true,
     refreshTokenValidity: Duration.days(30),

@@ -113,6 +113,21 @@ outputsAdapter({ collect, stackId: 'MyExistingOutputsStack' });
 
 Use this when adopting simple-cdk over an existing CloudFormation stack whose name doesn't follow the default shape, or when grouping resources from multiple adapters into one stack whose id you want to control.
 
+### Pinning a construct's logical ID
+
+Stack-level `stackId` covers the outer shell. For the primary construct inside each adapter, use a construct-level override:
+
+| Adapter | Option | Default |
+|---------|--------|---------|
+| `lambda` | `constructId` on each function's `config.ts` | `${PascalCase(name)}Function` |
+| `dynamodb` | `constructId` on each model config | `${PascalCase(name)}Table` |
+| `cognito` | `userPoolConstructId`, `clientConstructId`, `triggerConstructIds` | `UserPool`, the client name, `Trigger${PascalCase(name)}` |
+| `appsync` | `apiConstructId` | `Api` |
+| `rds` | `instanceConstructId` | `DbInstance` |
+| `outputs` | `parameterConstructId` | `BundledOutputs` |
+
+Combined, these make it safe to adopt simple-cdk over an existing CloudFormation stack without CloudFormation treating the adoption as a delete-and-recreate of your data-bearing resources.
+
 ## Configuration
 
 Your `simple-cdk.config.ts` is the only project-level file the engine reads. It's pure data: no side effects, no I/O. The shape:

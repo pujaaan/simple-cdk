@@ -110,6 +110,14 @@ import type { DynamoDbModelConfig } from '@simple-cdk/dynamodb';
 
 export default {
   pk: { name: 'id' },
+  // Optional: declare non-key fields for schema generation.
+  // DynamoDB itself stays schemaless; `attributes` is only read by
+  // `simple-cdk generate-schema`.
+  attributes: {
+    title: { type: 'String', required: true },
+    completed: { type: 'Boolean' },
+    createdAt: { type: 'AWSDateTime' },
+  },
   // sk, gsis, stream, ttlAttribute, billingMode all supported
 } satisfies DynamoDbModelConfig;
 ```
@@ -258,6 +266,8 @@ Token values from CDK (e.g. `pool.userPoolId`) are fine — they resolve at depl
 | Command | What it does |
 |---------|--------------|
 | `simple-cdk list` | Run discovery and print what each adapter found. No synth, no deploy. |
+| `simple-cdk create <kind> <name>` | Scaffold a new `model`, `function`, or `trigger`. Validates Cognito trigger names. `--dir <path>` to override the default folder. |
+| `simple-cdk generate-schema` | Emit a `schema.graphql` covering every discovered DynamoDB model (types, connections, CRUD inputs, Query/Mutation fields). `--out <path>` to target a different file. |
 | `simple-cdk synth` | Generate CloudFormation. |
 | `simple-cdk diff` | Diff against the deployed stack. |
 | `simple-cdk deploy` | Push to AWS. |

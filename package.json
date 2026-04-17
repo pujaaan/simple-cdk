@@ -29,7 +29,7 @@
     "examples/*"
   ],
   "scripts": {
-    "build": "npm run build -w @simple-cdk/core && npm run build -w @simple-cdk/lambda -w @simple-cdk/dynamodb -w @simple-cdk/cognito && npm run build -w @simple-cdk/appsync && npm run build -w simple-cdk",
+    "build": "npm run build -w @simple-cdk/core && npm run build -w @simple-cdk/lambda -w @simple-cdk/dynamodb -w @simple-cdk/cognito -w @simple-cdk/rds -w @simple-cdk/outputs && npm run build -w @simple-cdk/appsync && npm run build -w simple-cdk",
     "test": "npm run test --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",
     "clean": "rm -rf packages/*/dist examples/*/dist examples/*/cdk.out",
