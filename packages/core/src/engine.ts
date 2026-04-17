@@ -7,6 +7,7 @@ import type {
   Resource,
   ResolvedAppConfig,
   RegisterContext,
+  StackOptions,
   WireContext,
   Logger,
 } from './types.js';
@@ -92,19 +93,26 @@ export class Engine {
     return {
       config: this.resolved,
       app,
-      stack: (name) => this.getOrCreateStack(app, name),
+      stack: (name, opts) => this.getOrCreateStack(app, name, opts),
       resources: this.resourcesByAdapter.get(adapter.name) ?? [],
       allResources: this.resourcesByAdapter,
       log: createLogger(`adapter:${adapter.name}`),
     };
   }
 
-  private getOrCreateStack(app: App, name: string): Stack {
+  private getOrCreateStack(app: App, name: string, opts?: StackOptions): Stack {
     const existing = this.stacks.get(name);
-    if (existing) return existing;
+    if (existing) {
+      if (opts?.id && Stack.of(existing).stackName !== opts.id) {
+        throw new Error(
+          `Stack "${name}" already created with id "${Stack.of(existing).stackName}"; cannot rebind to "${opts.id}".`,
+        );
+      }
+      return existing;
+    }
 
     const { app: appName, stage, stageConfig } = this.resolved;
-    const id = `${appName}-${stage}-${name}`;
+    const id = opts?.id ?? `${appName}-${stage}-${name}`;
     const stack = new Stack(app, id, {
       env: { account: stageConfig.account, region: stageConfig.region },
       description: `${appName} ${stage} ${name} stack`,

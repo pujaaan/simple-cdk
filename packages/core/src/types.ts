@@ -46,14 +46,25 @@ export interface DiscoveryContext {
   log: Logger;
 }
 
+export interface StackOptions {
+  /**
+   * Override the CloudFormation logical ID verbatim, skipping the default
+   * `<app>-<stage>-<name>` prefix. Use when adopting simple-cdk over an
+   * existing CF stack whose id doesn't follow the default shape, or when
+   * grouping resources from multiple adapters into one CF stack.
+   */
+  id?: string;
+}
+
 export interface RegisterContext {
   config: ResolvedAppConfig;
   app: App;
   /**
    * Get-or-create a stack by logical name. The engine namespaces it as
    * `<app>-<stage>-<name>` so multiple stages in one repo don't collide.
+   * Pass `{ id }` to use a verbatim CF id instead of the default prefix.
    */
-  stack(name: string): Stack;
+  stack(name: string, opts?: StackOptions): Stack;
   /** Resources discovered by this adapter. */
   resources: Resource[];
   /** All resources from all adapters, keyed by adapter name. */
