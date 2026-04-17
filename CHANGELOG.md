@@ -4,6 +4,14 @@ All notable changes are documented here. The format follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+### Added
+
+- **`@simple-cdk/rds`**: single-instance RDS adapter (Postgres or MySQL) with isolated-subnet VPC and managed Secrets Manager secret; `getRdsInstance` / `getRdsSecret` / `getRdsVpc` / `getRdsSecurityGroup` lookups. No automatic IAM or network wiring — consumers grant access explicitly to preserve the "no surprise permissions" posture.
+- **`@simple-cdk/outputs`**: bundles arbitrary values into one SSM `String` parameter (default `/<app>/<stage>/outputs`) so frontends can read the whole config in a single call. Also emits per-key `CfnOutput`s by default.
+- **`@simple-cdk/dynamodb`**: `streamTargets` on a model config — name one or more Lambdas and the wire phase attaches a `DynamoEventSource` to each. `streamTargetOptions` surfaces the common `EventSourceMapping` knobs (starting position, batch size, retry, parallelization, batch-item failures).
+- **`@simple-cdk/core`**: `standardLayout()` preset exposing a nested `backend/` layout (auth, tables, functions, api). Opt-in — adapter defaults remain flat.
+- **`@simple-cdk/core`**: `StackOptions` on `ctx.stack(name, opts?)` with an `id` override to pin a stack's CloudFormation logical ID verbatim. Surfaced by the rds, outputs, dynamodb, and cognito adapters as `stackId`.
+
 ## [0.0.1] - 2026-04-16
 
 Initial release.
@@ -21,8 +29,7 @@ Initial release.
 
 ### Known gaps (planned)
 
-- No `@simple-cdk/rds` adapter yet. Use raw CDK in a custom adapter (see [extending docs](https://github.com/pujaaan/simple-cdk/blob/main/docs/Extending.md))
-- No first-class DynamoDB stream subscriber. Declare `stream: '...'` on the table and wire the consumer Lambda manually for now
-- No CloudFormation logical-ID preservation map. Fresh deploys only; safe migration of existing AWS resources comes in a later release
+- No CloudFormation logical-ID preservation map. Fresh deploys only; safe migration of existing AWS resources comes in a later release (partial: `stackId` on the stack factory, `constructId` on DynamoDB models)
 - No schema generation from models. Write `schema.graphql` by hand
 - No interactive scaffolding (`simple-cdk create model <name>`)
+- `init` doesn't prompt for `@simple-cdk/rds` or `@simple-cdk/outputs` yet — install and wire them manually for now

@@ -2,7 +2,7 @@
 
 Build on AWS without being an AWS expert.
 
-simple-cdk is a thin layer on top of [AWS CDK](https://aws.amazon.com/cdk/). You describe your app once in a single config file, drop your code into a few conventional folders, and the built-in **adapters** turn it into Lambda functions, DynamoDB tables, an AppSync GraphQL API, and a Cognito user pool. Every adapter is optional, every adapter is replaceable, and you can drop down to raw CDK any time.
+simple-cdk is a thin layer on top of [AWS CDK](https://aws.amazon.com/cdk/). You describe your app once in a single config file, drop your code into a few conventional folders, and the built-in **adapters** turn it into Lambda functions, DynamoDB tables, an AppSync GraphQL API, a Cognito user pool, an RDS database, and a bundled outputs parameter for frontends. Every adapter is optional, every adapter is replaceable, and you can drop down to raw CDK any time.
 
 ## Why simple-cdk?
 
@@ -54,6 +54,8 @@ npm install aws-cdk-lib constructs aws-cdk
 npm install @simple-cdk/core simple-cdk
 # adapters: install only the ones you need
 npm install @simple-cdk/lambda @simple-cdk/dynamodb @simple-cdk/appsync @simple-cdk/cognito
+# optional extras: RDS and a bundled-outputs SSM parameter for frontends
+npm install @simple-cdk/rds @simple-cdk/outputs
 ```
 
 Then create `simple-cdk.config.ts` at your project root:
@@ -143,6 +145,16 @@ dynamoDbAdapter({
 
 Defaults: `PAY_PER_REQUEST`, point-in-time recovery on. Table name: `<app>-<stage>-<model>`.
 
+Declare `streamTargets` on a model to wire the table's stream to one or more Lambda consumers (the adapter attaches a `DynamoEventSource` in the wire phase):
+
+```ts
+export default {
+  pk: {name: 'id'},
+  streamTargets: ['on-todo-change'],
+  streamTargetOptions: {startingPosition: 'LATEST', batchSize: 50},
+} satisfies DynamoDbModelConfig
+```
+
 ### `@simple-cdk/appsync`
 
 GraphQL API from a schema file. Auto-generates CRUD resolvers for any DynamoDB model and exposes a pluggable auth pipeline.
@@ -193,6 +205,47 @@ cognitoAdapter({
 ```
 
 Folder names map to Cognito triggers: `pre-sign-up`, `post-confirmation`, `pre-authentication`, `post-authentication`, `pre-token-generation`, `custom-message`, `define-auth-challenge`, `create-auth-challenge`, `verify-auth-challenge`, `user-migration`.
+
+### `@simple-cdk/rds`
+
+A single RDS instance (Postgres or MySQL) with a VPC (isolated subnets, no NAT gateway by default) and a managed Secrets Manager secret.
+
+```ts
+import {rdsAdapter, getRdsInstance} from '@simple-cdk/rds'
+
+rdsAdapter({
+  engine: 'postgres',           // or 'mysql' — required
+  instanceClass: 't4g.micro',   // default
+  allocatedStorageGb: 20,       // default
+  multiAz: false,               // default
+  publiclyAccessible: false,    // default
+  stackName: 'data',            // default
+})
+```
+
+No automatic IAM or network wiring — grant Lambdas access explicitly in a wiring adapter (`db.connections.allowDefaultPortFrom(fn); db.secret!.grantRead(fn)`). Lookups: `getRdsInstance`, `getRdsSecret`, `getRdsVpc`, `getRdsSecurityGroup`.
+
+### `@simple-cdk/outputs`
+
+Bundles values from your stacks into one SSM `String` parameter so a frontend can fetch the whole config object in one call.
+
+```ts
+import {outputsAdapter} from '@simple-cdk/outputs'
+import {getUserPool} from '@simple-cdk/cognito'
+import {getAppSyncApi} from '@simple-cdk/appsync'
+
+outputsAdapter({
+  collect: (ctx) => ({
+    userPoolId: getUserPool(ctx).userPoolId,
+    graphqlUrl: getAppSyncApi(ctx).graphqlUrl,
+    region: ctx.config.stageConfig.region,
+  }),
+  // parameterName defaults to `/<app>/<stage>/outputs`
+  // cfnOutputs: true (default) — also emit each key as a CfnOutput
+})
+```
+
+Runs in the wire phase, so every other adapter's resources are already registered. Token values like `pool.userPoolId` resolve at deploy time.
 
 ### CLI
 

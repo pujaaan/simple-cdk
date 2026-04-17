@@ -97,8 +97,21 @@ Defaults:
 | `dynamodb` | `data` |
 | `cognito` | `auth` |
 | `appsync` | `api` |
+| `rds` | `data` |
+| `outputs` | `outputs` |
 
 Override via the adapter's `stackName` option, or per-resource via the resource's own `stack` field where supported.
+
+### Pinning a stack's logical ID
+
+`ctx.stack(name, opts?)` takes an optional `StackOptions` with an `id` field. When set, the engine uses that id verbatim instead of the default `<app>-<stage>-<name>` prefix. Adapters that expose this option surface it as `stackId`:
+
+```ts
+rdsAdapter({ engine: 'postgres', stackId: 'legacy-db-stack' });
+outputsAdapter({ collect, stackId: 'MyExistingOutputsStack' });
+```
+
+Use this when adopting simple-cdk over an existing CloudFormation stack whose name doesn't follow the default shape, or when grouping resources from multiple adapters into one stack whose id you want to control.
 
 ## Configuration
 

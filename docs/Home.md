@@ -2,7 +2,7 @@
 
 > Build on AWS without being an AWS expert.
 
-simple-cdk is a thin layer on top of [AWS CDK](https://aws.amazon.com/cdk/). You describe your app once in a single config file, drop your code into a few conventional folders, and the built-in **adapters** turn it into Lambda functions, DynamoDB tables, an AppSync GraphQL API, and a Cognito user pool. Every adapter is optional, every adapter is replaceable, and you can drop down to raw CDK any time.
+simple-cdk is a thin layer on top of [AWS CDK](https://aws.amazon.com/cdk/). You describe your app once in a single config file, drop your code into a few conventional folders, and the built-in **adapters** turn it into Lambda functions, DynamoDB tables, an AppSync GraphQL API, a Cognito user pool, an RDS database, and a bundled outputs parameter for frontends. Every adapter is optional, every adapter is replaceable, and you can drop down to raw CDK any time.
 
 ---
 
@@ -124,6 +124,23 @@ dynamoDbAdapter({
 
 Defaults: `PAY_PER_REQUEST`, point-in-time recovery on. Table name: `<app>-<stage>-<model>`.
 
+**Stream subscribers.** Declare `streamTargets` on a model to wire the table's DynamoDB stream to one or more Lambda consumers. The adapter attaches a `DynamoEventSource` in the wire phase; the named Lambda must be discovered by the lambda adapter.
+
+```ts
+// backend/models/todo.model.ts
+export default {
+  pk: { name: 'id' },
+  streamTargets: ['on-todo-change'],      // Lambda name(s)
+  streamTargetOptions: {                  // optional EventSourceMapping knobs
+    startingPosition: 'LATEST',
+    batchSize: 50,
+    reportBatchItemFailures: true,
+  },
+} satisfies DynamoDbModelConfig;
+```
+
+Setting `streamTargets` implies `stream: 'NEW_AND_OLD_IMAGES'` unless you set `stream` explicitly.
+
 ### `@simple-cdk/appsync`
 
 GraphQL API from a schema file. Auto-generates CRUD resolvers for any DynamoDB model and exposes a pluggable auth pipeline.
@@ -172,6 +189,67 @@ cognitoAdapter({
 ```
 
 Folder names map to Cognito triggers: `pre-sign-up`, `post-confirmation`, `pre-authentication`, `post-authentication`, `pre-token-generation`, `custom-message`, `define-auth-challenge`, `create-auth-challenge`, `verify-auth-challenge`, `user-migration`.
+
+### `@simple-cdk/rds`
+
+A single RDS instance (Postgres or MySQL) with a VPC (isolated subnets, no NAT gateway by default) and a managed Secrets Manager secret.
+
+```ts
+import { rdsAdapter, getRdsInstance } from '@simple-cdk/rds';
+
+rdsAdapter({
+  engine: 'postgres',                     // or 'mysql' — required
+  instanceClass: 't4g.micro',             // default
+  allocatedStorageGb: 20,                 // default
+  multiAz: false,                         // default
+  publiclyAccessible: false,              // default — isolated subnets
+  stackName: 'data',                      // default
+  // engineVersion, databaseName, vpc, securityGroup, backupRetentionDays,
+  // deletionProtection, secretName, instanceConstructId, stackId, stack
+})
+```
+
+The adapter does **no automatic IAM or network wiring**. Grant a Lambda access explicitly in a wiring adapter:
+
+```ts
+{
+  name: 'lambda-rds',
+  wire: (ctx) => {
+    const db = getRdsInstance(ctx);
+    const fn = ctx.resourcesOf('lambda').find(r => r.name === 'api')!.config.construct;
+    db.connections.allowDefaultPortFrom(fn);
+    db.secret!.grantRead(fn);
+  },
+}
+```
+
+Defaults: backups 7 days (14 for `prod`), storage encrypted, deletion protection follows the stage's `removalPolicy`. Lookups: `getRdsInstance`, `getRdsSecret`, `getRdsVpc`, `getRdsSecurityGroup`.
+
+### `@simple-cdk/outputs`
+
+Bundles arbitrary values into a single SSM `String` parameter so a frontend (or any consumer) can fetch the whole config object in one call. Runs in the wire phase, so every other adapter's resources are already registered.
+
+```ts
+import { outputsAdapter } from '@simple-cdk/outputs';
+import { getUserPool } from '@simple-cdk/cognito';
+import { getAppSyncApi } from '@simple-cdk/appsync';
+
+outputsAdapter({
+  collect: (ctx) => {
+    const pool = getUserPool(ctx);
+    const api = getAppSyncApi(ctx);
+    return {
+      userPoolId: pool.userPoolId,
+      graphqlUrl: api.graphqlUrl,
+      region: ctx.config.stageConfig.region,
+    };
+  },
+  // parameterName defaults to `/<app>/<stage>/outputs`
+  // cfnOutputs: true (default) — also emit each key as a CfnOutput
+})
+```
+
+Token values from CDK (e.g. `pool.userPoolId`) are fine — they resolve at deploy time.
 
 ---
 

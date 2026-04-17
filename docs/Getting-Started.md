@@ -29,6 +29,8 @@ npx simple-cdk@latest init
 - Default stage name
 - Which built-in adapters to include (`lambda`, `dynamodb`, `appsync`, `cognito`)
 
+Two more built-in adapters — `@simple-cdk/rds` (Postgres/MySQL + VPC + secret) and `@simple-cdk/outputs` (bundle outputs into one SSM parameter) — aren't prompted for by `init`. Install and wire them manually when you need them; see [Home](./Home.md) for usage.
+
 Then it:
 
 1. Creates a `package.json` if one doesn't exist (with `type: module`)

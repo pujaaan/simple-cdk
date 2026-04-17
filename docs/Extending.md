@@ -56,6 +56,24 @@ appSyncAdapter({
 
 The full option shapes live in each adapter's `types.ts` (e.g. [`packages/adapter-lambda/src/types.ts`](../packages/adapter-lambda/src/types.ts)).
 
+### Nested layout (optional)
+
+Adapter defaults keep the `backend/` tree flat: `backend/functions`, `backend/models`, `backend/triggers`. If you prefer a nested layout grouped by concern, `@simple-cdk/core` exports a `standardLayout` preset so you don't have to repeat path literals:
+
+```ts
+import { standardLayout } from '@simple-cdk/core';
+
+const paths = standardLayout();   // { root: 'backend' } by default
+
+adapters: [
+  cognitoAdapter({ triggersDir: paths.triggersDir }),   // backend/auth/triggers
+  dynamoDbAdapter({ dir: paths.tablesDir }),             // backend/tables
+  lambdaAdapter({ dir: paths.functionsDir }),            // backend/functions
+],
+```
+
+Pass `{ root: 'src/server' }` to relocate everything under a different root. `paths.apiDir` is also exposed as a conventional spot for GraphQL schema + resolver source files. The helper is purely opt-in — the flat defaults still work.
+
 ---
 
 ## 2. Override a built-in adapter
@@ -298,7 +316,7 @@ Write your own when:
 - The convention doesn't fit (different file layout, different config shape)
 - You need behavior we don't expose as an option
 - You want different defaults across multiple projects (one shared adapter package, many consumers)
-- You're integrating an AWS service we don't ship an adapter for (SQS, SNS, EventBridge, Step Functions, RDS, S3, etc.)
+- You're integrating an AWS service we don't ship an adapter for (SQS, SNS, EventBridge, Step Functions, S3, etc.)
 
 Use what we ship when:
 
