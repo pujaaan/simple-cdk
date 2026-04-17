@@ -130,6 +130,7 @@ function colorStatus(status: string): string {
 function shouldHide(line: string): boolean {
   return (
     /^Bundling asset/.test(line) ||
+    /^\s*\.\.\..*-building\//.test(line) ||
     /^\s*\.\.\.undling-temp/.test(line) ||
     /^\s*\.\.\.dling-temp/.test(line) ||
     /^⚡ Done/.test(line) ||
@@ -137,6 +138,12 @@ function shouldHide(line: string): boolean {
     /deprecated\./.test(line) ||
     /^\s*The scope argument/.test(line) ||
     /^\s*This API will be removed/.test(line) ||
+    /^(added|removed|changed|up to date)\b.*\bpackage/.test(line) ||
+    /^audited \d+ package/.test(line) ||
+    /^found \d+ vulnerabilit/.test(line) ||
+    /^\d+ package(s)? (are|is) looking for funding/.test(line) ||
+    /^\s*run `npm fund`/.test(line) ||
+    /^npm (warn|notice)\b/.test(line) ||
     /^\s*$/.test(line)
   );
 }

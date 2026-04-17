@@ -4,6 +4,12 @@ All notable changes are documented here. The format follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+## [4.2.1] - 2026-04-16
+
+### Fixed
+
+- **CLI deploy/diff formatter no longer paints esbuild + npm stderr chatter red.** The v4.1.1 fix colored every unmatched stderr line red to surface genuine `cdk` errors — but esbuild's asset-bundling progress (`...<hash>-building/index.js  N kb`) and npm's install output (`added N packages`, `audited N packages`, `found 0 vulnerabilities`, funding / deprecation notices) also stream on stderr, so they all came through red. `shouldHide` now recognizes those known-noisy shapes and suppresses them; genuine unmatched stderr (real CDK errors) still renders red.
+
 ## [4.2.0] - 2026-04-16
 
 ### Added

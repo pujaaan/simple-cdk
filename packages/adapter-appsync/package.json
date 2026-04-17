@@ -1,6 +1,6 @@
 {
   "name": "@simple-cdk/appsync",
-  "version": "4.2.0",
+  "version": "4.2.1",
   "type": "module",
   "description": "simple-cdk adapter: AppSync GraphQL API with pluggable auth pipeline and auto-generated CRUD resolvers.",
   "main": "dist/index.js",
@@ -16,9 +16,9 @@
     "prepublishOnly": "npm run clean && npm run build"
   },
   "dependencies": {
-    "@simple-cdk/core": "4.2.0",
-    "@simple-cdk/dynamodb": "4.2.0",
-    "@simple-cdk/lambda": "4.2.0"
+    "@simple-cdk/core": "4.2.1",
+    "@simple-cdk/dynamodb": "4.2.1",
+    "@simple-cdk/lambda": "4.2.1"
   },
   "peerDependencies": {
     "aws-cdk-lib": "^2.160.0",
