@@ -19,6 +19,17 @@ export type {
 export { generateCrudCode } from './crud-generator.js';
 
 /**
+ * Lower-level building blocks, exported so consumers can assemble a custom
+ * AppSync adapter when `appSyncAdapter()` is too restrictive — e.g. to
+ * create the `GraphqlApi` themselves (with authorization rules or extra
+ * props the adapter doesn't surface) while still reusing the CRUD and
+ * manual-resolver pipelines. Most consumers want `appSyncAdapter()`; reach
+ * for these only when it doesn't fit.
+ */
+export { buildApi, getBuiltApi, attachCrudResolvers, attachManualResolvers } from './api.js';
+export type { BuiltApi } from './api.js';
+
+/**
  * The default AppSync adapter. Creates a GraphQL API from a schema file,
  * attaches Lambda + DynamoDB data sources from previously-registered
  * adapters, and (optionally) auto-generates CRUD resolvers and applies

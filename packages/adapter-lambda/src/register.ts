@@ -14,11 +14,15 @@ export function registerLambdas(ctx: RegisterContext, opts: LambdaAdapterOptions
   const defaultMem = opts.defaultMemoryMb ?? 256;
   const defaultTimeout = opts.defaultTimeoutSeconds ?? 30;
 
+  const optsStack = opts.stack
+    ? (typeof opts.stack === 'function' ? opts.stack(ctx) : opts.stack)
+    : undefined;
+
   for (const resource of ctx.resources as LambdaResource[]) {
     const fc = resource.config.functionConfig;
     const stack = fc.stack
       ? ctx.stack(fc.stack)
-      : opts.stack ?? ctx.stack(stackName, opts.stackId ? { id: opts.stackId } : undefined);
+      : optsStack ?? ctx.stack(stackName, opts.stackId ? { id: opts.stackId } : undefined);
     const id = fc.constructId ?? pascal(resource.name) + 'Function';
 
     const fn = new lambdaNode.NodejsFunction(stack, id, {

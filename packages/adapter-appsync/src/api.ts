@@ -8,7 +8,7 @@ import {
   Expiration,
   Duration,
 } from 'aws-cdk-lib';
-import { resourceNotFound, SimpleCdkError, type RegisterContext, type WireContext } from '@simple-cdk/core';
+import { resourceNotFound, type RegisterContext, type WireContext } from '@simple-cdk/core';
 import type { DynamoDbResource } from '@simple-cdk/dynamodb';
 import type { LambdaResource } from '@simple-cdk/lambda';
 import { generateCrudCode } from './crud-generator.js';
@@ -30,8 +30,8 @@ export function getBuiltApi(ctx: Pick<WireContext, 'app'>): BuiltApi | undefined
   return cache.get(ctx.app);
 }
 
-export function buildApi(ctx: RegisterContext, opts: AppSyncAdapterOptions): BuiltApi {
-  const stack = opts.stack ?? ctx.stack(opts.stackName ?? 'api', opts.stackId ? { id: opts.stackId } : undefined);
+export function buildApi(ctx: WireContext, opts: AppSyncAdapterOptions): BuiltApi {
+  const stack = resolveStack(ctx, opts);
   const apiName = opts.apiName ?? `${ctx.config.app}-${ctx.config.stage}-api`;
 
   const schemaPath = resolve(ctx.config.rootDir, opts.schemaFile);
@@ -40,7 +40,7 @@ export function buildApi(ctx: RegisterContext, opts: AppSyncAdapterOptions): Bui
   const api = new appsync.GraphqlApi(stack, opts.apiConstructId ?? 'Api', {
     name: apiName,
     schema,
-    authorizationConfig: { defaultAuthorization: toAuthMode(opts.authorization ?? { kind: 'api-key' }) },
+    authorizationConfig: { defaultAuthorization: toAuthMode(ctx, opts.authorization ?? { kind: 'api-key' }) },
     xrayEnabled: ctx.config.stage !== 'prod',
   });
 
@@ -261,7 +261,7 @@ function buildFunctionFromSource(built: BuiltApi, ctx: RegisterContext, spec: Re
   });
 }
 
-function toAuthMode(mode: AuthorizationMode): appsync.AuthorizationMode {
+function toAuthMode(ctx: WireContext, mode: AuthorizationMode): appsync.AuthorizationMode {
   switch (mode.kind) {
     case 'iam':
       return { authorizationType: appsync.AuthorizationType.IAM };
@@ -270,13 +270,28 @@ function toAuthMode(mode: AuthorizationMode): appsync.AuthorizationMode {
         authorizationType: appsync.AuthorizationType.API_KEY,
         apiKeyConfig: { expires: Expiration.after(Duration.days(365)) },
       };
-    case 'cognito':
-      throw new SimpleCdkError({
-        code: 'USER_INPUT',
-        message: 'Cognito authorization on appSyncAdapter({ authorization }) is not supported via the kind discriminator.',
-        hint: 'use { kind: "iam" } or { kind: "api-key" } here. For Cognito-backed auth, add a small wiring adapter that calls getUserPool(ctx) and passes it into the AppSync API authorization config yourself.',
-      });
+    case 'cognito': {
+      const userPool = typeof mode.userPool === 'function' ? mode.userPool(ctx) : mode.userPool;
+      return {
+        authorizationType: appsync.AuthorizationType.USER_POOL,
+        userPoolConfig: {
+          userPool,
+          defaultAction:
+            mode.defaultAction === 'DENY'
+              ? appsync.UserPoolDefaultAction.DENY
+              : appsync.UserPoolDefaultAction.ALLOW,
+          appIdClientRegex: mode.appIdClientRegex,
+        },
+      };
+    }
   }
+}
+
+function resolveStack(ctx: WireContext, opts: AppSyncAdapterOptions) {
+  if (opts.stack) {
+    return typeof opts.stack === 'function' ? opts.stack(ctx) : opts.stack;
+  }
+  return ctx.stack(opts.stackName ?? 'api', opts.stackId ? { id: opts.stackId } : undefined);
 }
 
 function crudFieldMapping(op: string, modelName: string): { typeName: string; fieldName: string } {

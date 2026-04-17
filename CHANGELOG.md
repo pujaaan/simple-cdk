@@ -4,6 +4,25 @@ All notable changes are documented here. The format follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+## [4.2.0] - 2026-04-16
+
+### Added
+
+- **`@simple-cdk/appsync`**: **Cognito authorization on `appSyncAdapter({ authorization })`** — the `{ kind: 'cognito' }` variant is now functional. Pass `userPool` as an `IUserPool` directly or as a `(ctx) => IUserPool` resolver (the usual form is `userPool: (ctx) => getUserPool(ctx)`), plus optional `defaultAction` (`ALLOW`/`DENY`, default `ALLOW`) and `appIdClientRegex`. Unblocks Cognito-backed APIs without the escape-hatch-via-wiring workaround — which was never actually viable because `defaultAuthorization` is locked at `GraphqlApi` construction.
+  ```ts
+  import { getUserPool } from '@simple-cdk/cognito';
+  appSyncAdapter({
+    schemaFile: 'schema.graphql',
+    authorization: { kind: 'cognito', userPool: (ctx) => getUserPool(ctx) },
+  });
+  ```
+- **`@simple-cdk/appsync`**: **lower-level building blocks exported** — `buildApi`, `getBuiltApi`, `attachCrudResolvers`, `attachManualResolvers`, and the `BuiltApi` type are now part of the public API. Use these to build a custom adapter that creates the `GraphqlApi` itself (for props the adapter doesn't surface) while reusing the CRUD + manual-resolver pipelines. Most consumers should still use `appSyncAdapter()`.
+- **`@simple-cdk/lambda`** and **`@simple-cdk/appsync`**: `stack?` on adapter options now accepts `Stack | ((ctx) => Stack)`. Use the callback form to bind to a `Stack` another adapter registered earlier via `ctx.stack(name)` — late-binding avoids requiring the consumer to materialize the `Stack` at config-eval time.
+
+### Changed
+
+- **`AuthorizationMode`** `{ kind: 'cognito' }` variant shape changed from `{ userPoolName: string }` (never functional — always threw) to `{ userPool: IUserPool | (ctx) => IUserPool; defaultAction?; appIdClientRegex? }`. Technically a type-level break, but no consumer code could have been using the old shape successfully.
+
 ## [4.1.1] - 2026-04-16
 
 ### Fixed

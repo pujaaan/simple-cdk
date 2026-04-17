@@ -1,4 +1,4 @@
-import type { Resource } from '@simple-cdk/core';
+import type { RegisterContext, Resource } from '@simple-cdk/core';
 import type { aws_iam, aws_lambda_nodejs, Duration, Stack } from 'aws-cdk-lib';
 
 /**
@@ -69,6 +69,11 @@ export interface LambdaAdapterOptions {
    * Register functions under a consumer-created Stack instead of letting
    * the engine create one. Takes precedence over `stackName` / `stackId`.
    * Per-function `stack?` still overrides this.
+   *
+   * Accepts a `Stack` instance, or a resolver that receives the register-phase
+   * context — use the callback form when the Stack is created later in the
+   * lifecycle (e.g. by another adapter ordered before this one via
+   * `ctx.stack(name)`).
    */
-  stack?: Stack;
+  stack?: Stack | ((ctx: RegisterContext) => Stack);
 }

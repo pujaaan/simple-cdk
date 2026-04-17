@@ -116,7 +116,8 @@ export type ResolverSource =
   | { kind: 'lambda'; lambdaName: string }
   | { kind: 'dynamodb'; tableName: string; jsFile: string };
 
-import type { Stack } from 'aws-cdk-lib';
+import type { Stack, aws_cognito } from 'aws-cdk-lib';
+import type { RegisterContext, WireContext } from '@simple-cdk/core';
 
 export interface AppSyncAdapterOptions {
   /** Path to the GraphQL schema file. Required. */
@@ -143,8 +144,11 @@ export interface AppSyncAdapterOptions {
   /**
    * Register the API under a consumer-created Stack instead of letting
    * the engine create one. Takes precedence over `stackName` / `stackId`.
+   * Accepts a `Stack` instance, or a resolver that receives the wire-phase
+   * context — use the callback form to bind to a Stack another adapter
+   * registered via `ctx.stack(name)` earlier in the lifecycle.
    */
-  stack?: Stack;
+  stack?: Stack | ((ctx: RegisterContext) => Stack);
   /** Pluggable auth pipeline applied to all non-bypass resolvers. */
   authPipeline?: AuthPipelineSpec;
   /** Auto-generate CRUD resolvers from discovered DynamoDB models. */
@@ -158,4 +162,19 @@ export interface AppSyncAdapterOptions {
 export type AuthorizationMode =
   | { kind: 'api-key' }
   | { kind: 'iam' }
-  | { kind: 'cognito'; userPoolName: string };
+  | {
+      kind: 'cognito';
+      /**
+       * Cognito user pool to authorize against. Pass an `IUserPool`
+       * directly, or a resolver that receives the wire-phase context —
+       * the callback form is the usual way to bind to the pool registered
+       * by `cognitoAdapter()` without importing it statically:
+       *
+       *   authorization: { kind: 'cognito', userPool: (ctx) => getUserPool(ctx) }
+       */
+      userPool: aws_cognito.IUserPool | ((ctx: WireContext) => aws_cognito.IUserPool);
+      /** AppSync default action for unauthenticated requests. Default: ALLOW. */
+      defaultAction?: 'ALLOW' | 'DENY';
+      /** Restrict authorization to a specific app client id regex. Optional. */
+      appIdClientRegex?: string;
+    };
