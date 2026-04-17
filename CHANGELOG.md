@@ -4,6 +4,12 @@ All notable changes are documented here. The format follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+## [4.1.1] - 2026-04-16
+
+### Fixed
+
+- **CLI deploy/diff formatter no longer swallows CDK errors as dim gray.** `renderDeploy` and `renderDiff` now tag each line with its source stream; unmatched `stderr` lines (e.g. `cdk deploy`'s "Since this app includes more than a single stack, specify which stacks to use…") are printed to `stderr` in red instead of being dimmed alongside harmless stdout chatter. Non-error stdout lines still render dim as before.
+
 ## [4.1.0] - 2026-04-16
 
 ### Added

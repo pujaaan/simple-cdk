@@ -24,7 +24,7 @@ interface DiffRow {
 export async function renderDiff(stdout: Readable, stderr: Readable): Promise<void> {
   const rows: DiffRow[] = [];
 
-  const onLine = (line: string) => {
+  const onLine = (line: string, source: StreamSource) => {
     const m = DIFF_RE.exec(line);
     if (m) {
       rows.push({ status: m[1] as DiffRow['status'], type: m[2]!, name: m[3]! });
@@ -34,10 +34,15 @@ export async function renderDiff(stdout: Readable, stderr: Readable): Promise<vo
     if (/^\s*[├└│]/.test(line) || line.includes('@@')) return;
     // Suppress bundling + warning chatter that CDK emits during synth.
     if (shouldHide(line)) return;
-    if (line.trim()) console.log(dim(line));
+    if (!line.trim()) return;
+    if (source === 'stderr') process.stderr.write(red(line) + '\n');
+    else console.log(dim(line));
   };
 
-  await Promise.all([forEachLine(stdout, onLine), forEachLine(stderr, onLine)]);
+  await Promise.all([
+    forEachLine(stdout, 'stdout', onLine),
+    forEachLine(stderr, 'stderr', onLine),
+  ]);
   printDiffTable(rows);
 }
 
@@ -75,7 +80,7 @@ function printDiffTable(rows: DiffRow[]): void {
 export async function renderDeploy(stdout: Readable, stderr: Readable): Promise<void> {
   let headerPrinted = false;
 
-  const onLine = (line: string) => {
+  const onLine = (line: string, source: StreamSource) => {
     const m = DEPLOY_RE.exec(line);
     if (m) {
       if (!headerPrinted) {
@@ -91,10 +96,15 @@ export async function renderDeploy(stdout: Readable, stderr: Readable): Promise<
       return;
     }
     if (shouldHide(line)) return;
-    if (line.trim()) console.log(dim(line));
+    if (!line.trim()) return;
+    if (source === 'stderr') process.stderr.write(red(line) + '\n');
+    else console.log(dim(line));
   };
 
-  await Promise.all([forEachLine(stdout, onLine), forEachLine(stderr, onLine)]);
+  await Promise.all([
+    forEachLine(stdout, 'stdout', onLine),
+    forEachLine(stderr, 'stderr', onLine),
+  ]);
 }
 
 function printDeployHeader(): void {
@@ -140,7 +150,13 @@ function padRaw(colored: string, raw: string, width: number): string {
   return raw.length >= width ? colored : colored + ' '.repeat(width - raw.length);
 }
 
-function forEachLine(stream: Readable, onLine: (line: string) => void): Promise<void> {
+type StreamSource = 'stdout' | 'stderr';
+
+function forEachLine(
+  stream: Readable,
+  source: StreamSource,
+  onLine: (line: string, source: StreamSource) => void,
+): Promise<void> {
   return new Promise((resolvePromise, reject) => {
     let buf = '';
     stream.setEncoding('utf8');
@@ -148,7 +164,7 @@ function forEachLine(stream: Readable, onLine: (line: string) => void): Promise<
       buf += chunk;
       let idx: number;
       while ((idx = buf.indexOf('\n')) >= 0) {
-        onLine(buf.slice(0, idx).replace(/\r$/, ''));
+        onLine(buf.slice(0, idx).replace(/\r$/, ''), source);
         buf = buf.slice(idx + 1);
       }
       // If the trailing buffer looks like an interactive prompt
@@ -160,7 +176,7 @@ function forEachLine(stream: Readable, onLine: (line: string) => void): Promise<
       }
     });
     stream.on('end', () => {
-      if (buf.trim()) onLine(buf);
+      if (buf.trim()) onLine(buf, source);
       resolvePromise();
     });
     stream.on('error', reject);
