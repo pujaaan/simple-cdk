@@ -1,6 +1,6 @@
 {
   "name": "simple-cdk-monorepo",
-  "version": "4.2.1",
+  "version": "4.2.2",
   "private": true,
   "type": "module",
   "description": "Build on AWS without being an AWS expert. A convention-over-configuration layer on AWS CDK for Lambda, DynamoDB, AppSync (GraphQL), and Cognito.",

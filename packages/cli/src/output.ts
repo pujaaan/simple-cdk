@@ -32,11 +32,7 @@ export async function renderDiff(stdout: Readable, stderr: Readable): Promise<vo
     }
     // Suppress nested-diff detail lines (tree glyphs + @@ hunks).
     if (/^\s*[├└│]/.test(line) || line.includes('@@')) return;
-    // Suppress bundling + warning chatter that CDK emits during synth.
-    if (shouldHide(line)) return;
-    if (!line.trim()) return;
-    if (source === 'stderr') process.stderr.write(red(line) + '\n');
-    else console.log(dim(line));
+    emitClassified(line, source);
   };
 
   await Promise.all([
@@ -95,10 +91,7 @@ export async function renderDeploy(stdout: Readable, stderr: Readable): Promise<
       console.log(line);
       return;
     }
-    if (shouldHide(line)) return;
-    if (!line.trim()) return;
-    if (source === 'stderr') process.stderr.write(red(line) + '\n');
-    else console.log(dim(line));
+    emitClassified(line, source);
   };
 
   await Promise.all([
@@ -127,25 +120,53 @@ function colorStatus(status: string): string {
   return status;
 }
 
-function shouldHide(line: string): boolean {
-  return (
-    /^Bundling asset/.test(line) ||
-    /^\s*\.\.\..*-building\//.test(line) ||
-    /^\s*\.\.\.undling-temp/.test(line) ||
-    /^\s*\.\.\.dling-temp/.test(line) ||
-    /^⚡ Done/.test(line) ||
-    /^\[WARNING\]/.test(line) ||
-    /deprecated\./.test(line) ||
-    /^\s*The scope argument/.test(line) ||
-    /^\s*This API will be removed/.test(line) ||
-    /^(added|removed|changed|up to date)\b.*\bpackage/.test(line) ||
-    /^audited \d+ package/.test(line) ||
-    /^found \d+ vulnerabilit/.test(line) ||
-    /^\d+ package(s)? (are|is) looking for funding/.test(line) ||
-    /^\s*run `npm fund`/.test(line) ||
-    /^npm (warn|notice)\b/.test(line) ||
-    /^\s*$/.test(line)
-  );
+type Classification = 'hide' | 'warn' | 'error';
+
+// Classify a line for display. Returns null to defer to stream-based
+// coloring (stderr → red, stdout → dim). Ordering matters — noise
+// patterns run first so esbuild/npm chatter can't be misread as an error.
+function classify(line: string): Classification | null {
+  if (!line.trim()) return 'hide';
+
+  // Noise — bundling + npm install chatter we never want to see.
+  if (/^Bundling asset/.test(line)) return 'hide';
+  if (/^\s*\.\.\..*-building\//.test(line)) return 'hide';
+  if (/^\s*\.\.\..*dling-temp/.test(line)) return 'hide';
+  if (/^⚡ Done/.test(line)) return 'hide';
+  if (/^(added|removed|changed|up to date)\b.*\bpackage/.test(line)) return 'hide';
+  if (/^audited \d+ package/.test(line)) return 'hide';
+  if (/^found \d+ vulnerabilit/.test(line)) return 'hide';
+  if (/^\d+ package(s)? (are|is) looking for funding/.test(line)) return 'hide';
+  if (/^\s*run `npm fund`/.test(line)) return 'hide';
+
+  // Warnings — deprecations + advisory chatter, everything yellow.
+  if (/\[WARNING\]/.test(line)) return 'warn';
+  if (/deprecated\./i.test(line)) return 'warn';
+  if (/^\s*The scope argument/.test(line)) return 'warn';
+  if (/^\s*This API will be removed/.test(line)) return 'warn';
+  if (/^npm (warn|notice)\b/i.test(line)) return 'warn';
+
+  // Explicit errors — tag red regardless of stream.
+  if (/^❌/.test(line)) return 'error';
+  if (/^\s*Error:/i.test(line)) return 'error';
+  if (/^npm (err|error)\b/i.test(line)) return 'error';
+
+  return null;
+}
+
+function emitClassified(line: string, source: StreamSource): void {
+  const c = classify(line);
+  if (c === 'hide') return;
+  if (c === 'warn') {
+    process.stderr.write(yellow(line) + '\n');
+    return;
+  }
+  if (c === 'error') {
+    process.stderr.write(red(line) + '\n');
+    return;
+  }
+  if (source === 'stderr') process.stderr.write(red(line) + '\n');
+  else console.log(dim(line));
 }
 
 function pad(s: string, width: number): string {

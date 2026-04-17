@@ -4,6 +4,12 @@ All notable changes are documented here. The format follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+## [4.2.2] - 2026-04-16
+
+### Changed
+
+- **CLI deploy/diff formatter is now semantic, not stream-based.** Lines are classified by content: bundling progress + npm install chatter are **hidden**; deprecation notices, `[WARNING]` lines, and `npm warn`/`npm notice` render **yellow**; `❌`, `Error:`, and `npm err` render **red**; unmatched stderr still falls back to red so genuine `cdk` errors surface. Replaces the v4.2.1 binary "hide-or-red" behavior — advisory chatter now reads as advisory, not as an error.
+
 ## [4.2.1] - 2026-04-16
 
 ### Fixed
