@@ -25,7 +25,7 @@ export interface BuiltCognito {
 const cache = new WeakMap<RegisterContext['app'], BuiltCognito>();
 
 export function registerUserPool(ctx: RegisterContext, opts: CognitoAdapterOptions): BuiltCognito {
-  const stack = ctx.stack(opts.stackName ?? 'auth');
+  const stack = opts.stack ?? ctx.stack(opts.stackName ?? 'auth', opts.stackId ? { id: opts.stackId } : undefined);
   const removal = removalPolicyFromStage(ctx.config.stageConfig.removalPolicy);
 
   const userPool = new cognito.UserPool(stack, opts.userPoolConstructId ?? 'UserPool', {
@@ -63,6 +63,7 @@ export function registerUserPool(ctx: RegisterContext, opts: CognitoAdapterOptio
     });
     userPool.addTrigger(TRIGGER_TO_ENUM[resource.config.trigger], fn);
     triggers.set(resource.config.trigger, fn);
+    resource.config.construct = fn;
   }
 
   const client = userPool.addClient(opts.clientName ?? 'web', {

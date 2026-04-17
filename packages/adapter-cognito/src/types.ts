@@ -1,5 +1,5 @@
 import type { Resource } from '@simple-cdk/core';
-import type { aws_cognito } from 'aws-cdk-lib';
+import type { aws_cognito, aws_lambda_nodejs, Stack } from 'aws-cdk-lib';
 
 /**
  * Cognito Lambda trigger names supported by simple-cdk's auto-discovery.
@@ -20,7 +20,7 @@ export type TriggerName =
 export interface TriggerResourceConfig {
   trigger: TriggerName;
   handlerFile: string;
-  construct?: aws_cognito.UserPool;
+  construct?: aws_lambda_nodejs.NodejsFunction;
 }
 
 export type TriggerResource = Resource<TriggerResourceConfig> & { type: 'cognito-trigger' };
@@ -38,6 +38,16 @@ export interface CognitoAdapterOptions {
   triggersDir?: string;
   /** Stack to register the user pool under. Default: 'auth'. */
   stackName?: string;
+  /**
+   * Pin the CloudFormation logical ID of the stack verbatim, skipping
+   * the `<app>-<stage>-` prefix. Use when adopting an existing stack.
+   */
+  stackId?: string;
+  /**
+   * Register the pool under a consumer-created Stack instead of letting
+   * the engine create one. Takes precedence over `stackName` / `stackId`.
+   */
+  stack?: Stack;
   /** Sign-in attribute. Default: 'email'. */
   signInAlias?: 'email' | 'username' | 'phone';
   /** Self sign-up enabled. Default: true. */

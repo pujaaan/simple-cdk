@@ -1,8 +1,8 @@
 import type { Adapter, WireContext } from '@simple-cdk/core';
-import type { aws_cognito } from 'aws-cdk-lib';
+import type { aws_cognito, aws_lambda_nodejs } from 'aws-cdk-lib';
 import { discoverTriggers } from './discover.js';
 import { getBuiltCognito, registerUserPool } from './register.js';
-import type { CognitoAdapterOptions } from './types.js';
+import type { CognitoAdapterOptions, TriggerName } from './types.js';
 
 export type { CognitoAdapterOptions, TriggerName, TriggerResource } from './types.js';
 
@@ -38,4 +38,24 @@ export function getUserPoolClient(ctx: Pick<WireContext, 'app'>): aws_cognito.Us
     throw new Error('Cognito client not built — did the cognito adapter run?');
   }
   return built.client;
+}
+
+/**
+ * Look up a registered Cognito trigger Lambda by name. Enables cross-adapter
+ * wiring — grant a trigger extra IAM permissions, set env vars from DynamoDB
+ * tables, etc. Throws if the trigger wasn't discovered.
+ */
+export function getCognitoTrigger(
+  ctx: Pick<WireContext, 'app'>,
+  name: TriggerName,
+): aws_lambda_nodejs.NodejsFunction {
+  const built = getBuiltCognito(ctx);
+  if (!built) {
+    throw new Error('Cognito not built — did the cognito adapter run?');
+  }
+  const fn = built.triggers.get(name);
+  if (!fn) {
+    throw new Error(`Cognito trigger "${name}" was not discovered. Check that backend has a matching trigger folder.`);
+  }
+  return fn;
 }
