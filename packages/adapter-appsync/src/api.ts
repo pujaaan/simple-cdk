@@ -8,12 +8,12 @@ import {
   Expiration,
   Duration,
 } from 'aws-cdk-lib';
-import type { RegisterContext } from '@simple-cdk/core';
+import type { RegisterContext, WireContext } from '@simple-cdk/core';
 import type { DynamoDbResource } from '@simple-cdk/dynamodb';
 import type { LambdaResource } from '@simple-cdk/lambda';
 import { generateCrudCode } from './crud-generator.js';
 import { PASSTHROUGH_AUTH_CODE } from './templates/auth-passthrough.js';
-import type { AppSyncAdapterOptions, AuthorizationMode, ResolverSpec } from './types.js';
+import type { AppSyncAdapterOptions, AuthorizationMode, ResolverSpec, StashLiteral } from './types.js';
 
 export interface BuiltApi {
   api: appsync.GraphqlApi;
@@ -24,8 +24,14 @@ export interface BuiltApi {
   authFn?: appsync.AppsyncFunction;
 }
 
+const cache = new WeakMap<RegisterContext['app'], BuiltApi>();
+
+export function getBuiltApi(ctx: Pick<WireContext, 'app'>): BuiltApi | undefined {
+  return cache.get(ctx.app);
+}
+
 export function buildApi(ctx: RegisterContext, opts: AppSyncAdapterOptions): BuiltApi {
-  const stack = ctx.stack(opts.stackName ?? 'api');
+  const stack = opts.stack ?? ctx.stack(opts.stackName ?? 'api', opts.stackId ? { id: opts.stackId } : undefined);
   const apiName = `${ctx.config.app}-${ctx.config.stage}-${opts.apiName ?? 'api'}`;
 
   const schemaPath = resolve(ctx.config.rootDir, opts.schemaFile);
@@ -60,13 +66,20 @@ export function buildApi(ctx: RegisterContext, opts: AppSyncAdapterOptions): Bui
 
   const authFn = opts.authPipeline ? buildAuthFunction(api, opts.authPipeline) : undefined;
 
-  return { api, dataSources: { lambda: lambdaSources, dynamodb: ddbSources }, authFn };
+  const built: BuiltApi = { api, dataSources: { lambda: lambdaSources, dynamodb: ddbSources }, authFn };
+  cache.set(ctx.app, built);
+  return built;
 }
 
 export function attachManualResolvers(built: BuiltApi, ctx: RegisterContext, resolvers: ResolverSpec[]): void {
   for (const spec of resolvers) {
     const fn = buildFunctionFromSource(built, ctx, spec);
     const pipeline: appsync.AppsyncFunction[] = [];
+    if (spec.stashBefore && Object.keys(spec.stashBefore).length > 0) {
+      pipeline.push(
+        buildStashFunction(built.api, `StashFn${spec.typeName}${spec.fieldName}`, spec.stashBefore),
+      );
+    }
     if (built.authFn && !spec.bypassAuth) pipeline.push(built.authFn);
     pipeline.push(fn);
 
@@ -95,7 +108,9 @@ export function attachCrudResolvers(
       continue;
     }
     for (const op of ops) {
-      const code = generateCrudCode(op, tableResource.config.modelConfig, spec.softDelete ?? false);
+      const softDelete = spec.softDelete ?? false;
+      const overridden = spec.templateOverride?.(op, tableResource.name, softDelete);
+      const code = overridden ?? generateCrudCode(op, tableResource.config.modelConfig, softDelete);
       const fnId = `Crud${pascal(tableResource.name)}${pascal(op)}Fn`;
       const fn = new appsync.AppsyncFunction(built.api, fnId, {
         api: built.api,
@@ -107,6 +122,12 @@ export function attachCrudResolvers(
 
       const { typeName, fieldName } = crudFieldMapping(op, tableResource.name);
       const pipeline: appsync.AppsyncFunction[] = [];
+      const stash = spec.stashBeforeFor?.(op, tableResource.name);
+      if (stash && Object.keys(stash).length > 0) {
+        pipeline.push(
+          buildStashFunction(built.api, `StashFn${pascal(tableResource.name)}${pascal(op)}`, stash),
+        );
+      }
       if (built.authFn) pipeline.push(built.authFn);
       pipeline.push(fn);
 
@@ -129,6 +150,34 @@ function buildAuthFunction(api: appsync.GraphqlApi, spec: NonNullable<AppSyncAda
     api,
     dataSource: noneDS,
     name: 'AuthPipelineFn',
+    runtime: appsync.FunctionRuntime.JS_1_0_0,
+    code: appsync.Code.fromInline(code),
+  });
+}
+
+function buildStashFunction(
+  api: appsync.GraphqlApi,
+  id: string,
+  stash: Record<string, StashLiteral>,
+): appsync.AppsyncFunction {
+  const noneDS = api.node.tryFindChild('StashNoneDS')
+    ? (api.node.findChild('StashNoneDS') as appsync.NoneDataSource)
+    : api.addNoneDataSource('StashNoneDS');
+  const entries = Object.entries(stash)
+    .map(([k, v]) => `  ctx.stash[${JSON.stringify(k)}] = ${JSON.stringify(v)};`)
+    .join('\n');
+  const code = `
+export function request(ctx) {
+${entries}
+  return {};
+}
+
+export function response(ctx) { return ctx.prev.result; }
+`.trim();
+  return new appsync.AppsyncFunction(api, id, {
+    api,
+    dataSource: noneDS,
+    name: id,
     runtime: appsync.FunctionRuntime.JS_1_0_0,
     code: appsync.Code.fromInline(code),
   });

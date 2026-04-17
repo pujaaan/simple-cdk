@@ -1,6 +1,7 @@
-import type { Adapter } from '@simple-cdk/core';
+import type { Adapter, WireContext } from '@simple-cdk/core';
 import type { DynamoDbResource } from '@simple-cdk/dynamodb';
-import { attachCrudResolvers, attachManualResolvers, buildApi } from './api.js';
+import type { aws_appsync } from 'aws-cdk-lib';
+import { attachCrudResolvers, attachManualResolvers, buildApi, getBuiltApi } from './api.js';
 import type { AppSyncAdapterOptions } from './types.js';
 
 export type {
@@ -42,4 +43,18 @@ export function appSyncAdapter(opts: AppSyncAdapterOptions): Adapter {
       }
     },
   };
+}
+
+/**
+ * Look up the registered GraphQL API from another adapter's wire phase.
+ * Throws if the AppSync adapter hasn't run yet. Useful for attaching
+ * additional data sources, custom resolvers, or extracting the api URL
+ * into outputs.
+ */
+export function getAppSyncApi(ctx: Pick<WireContext, 'app'>): aws_appsync.GraphqlApi {
+  const built = getBuiltApi(ctx);
+  if (!built) {
+    throw new Error('AppSync API not built — did the appsync adapter run?');
+  }
+  return built.api;
 }
