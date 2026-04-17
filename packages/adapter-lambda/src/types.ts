@@ -1,5 +1,5 @@
 import type { Resource } from '@simple-cdk/core';
-import type { aws_iam, aws_lambda_nodejs, Duration } from 'aws-cdk-lib';
+import type { aws_iam, aws_lambda_nodejs, Duration, Stack } from 'aws-cdk-lib';
 
 /**
  * Static config a function can export from a sibling `config.ts`.
@@ -60,4 +60,15 @@ export interface LambdaAdapterOptions {
   defaultTimeoutSeconds?: number;
   /** Stack name to register functions under. Default: 'lambda'. */
   stackName?: string;
+  /**
+   * Pin the CloudFormation logical ID of the stack verbatim, skipping
+   * the `<app>-<stage>-` prefix. Use when adopting an existing stack.
+   */
+  stackId?: string;
+  /**
+   * Register functions under a consumer-created Stack instead of letting
+   * the engine create one. Takes precedence over `stackName` / `stackId`.
+   * Per-function `stack?` still overrides this.
+   */
+  stack?: Stack;
 }
