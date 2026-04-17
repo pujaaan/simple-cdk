@@ -15,3 +15,4 @@ coverage/
 .vscode/
 .idea/
 package-lock.json
+.claude/settings.json
