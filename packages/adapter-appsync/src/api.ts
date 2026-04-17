@@ -13,7 +13,7 @@ import type { DynamoDbResource } from '@simple-cdk/dynamodb';
 import type { LambdaResource } from '@simple-cdk/lambda';
 import { generateCrudCode } from './crud-generator.js';
 import { PASSTHROUGH_AUTH_CODE } from './templates/auth-passthrough.js';
-import type { AppSyncAdapterOptions, AuthorizationMode, ResolverSpec, StashLiteral } from './types.js';
+import type { AppSyncAdapterOptions, AuthorizationMode, ResolverSpec, StashValue } from './types.js';
 
 export interface BuiltApi {
   api: appsync.GraphqlApi;
@@ -75,9 +75,17 @@ export function attachManualResolvers(built: BuiltApi, ctx: RegisterContext, res
   for (const spec of resolvers) {
     const fn = buildFunctionFromSource(built, ctx, spec);
     const pipeline: appsync.AppsyncFunction[] = [];
-    if (spec.stashBefore && Object.keys(spec.stashBefore).length > 0) {
+    const hasStash =
+      (spec.stashBefore && Object.keys(spec.stashBefore).length > 0) ||
+      (spec.stashCode && spec.stashCode.trim().length > 0);
+    if (hasStash) {
       pipeline.push(
-        buildStashFunction(built.api, `StashFn${spec.typeName}${spec.fieldName}`, spec.stashBefore),
+        buildStashFunction(
+          built.api,
+          `StashFn${spec.typeName}${spec.fieldName}`,
+          spec.stashBefore,
+          spec.stashCode,
+        ),
       );
     }
     if (built.authFn && !spec.bypassAuth) pipeline.push(built.authFn);
@@ -134,9 +142,18 @@ export function attachCrudResolvers(
       const { typeName, fieldName } = crudFieldMapping(op, tableResource.name);
       const pipeline: appsync.AppsyncFunction[] = [];
       const stash = spec.stashBeforeFor?.(op, tableResource.name);
-      if (stash && Object.keys(stash).length > 0) {
+      const preamble = spec.stashCodeFor?.(op, tableResource.name);
+      const hasStash =
+        (stash && Object.keys(stash).length > 0) ||
+        (preamble && preamble.trim().length > 0);
+      if (hasStash) {
         pipeline.push(
-          buildStashFunction(built.api, `StashFn${pascal(tableResource.name)}${pascal(op)}`, stash),
+          buildStashFunction(
+            built.api,
+            `StashFn${pascal(tableResource.name)}${pascal(op)}`,
+            stash,
+            preamble,
+          ),
         );
       }
       if (built.authFn) pipeline.push(built.authFn);
@@ -169,17 +186,21 @@ function buildAuthFunction(api: appsync.GraphqlApi, spec: NonNullable<AppSyncAda
 function buildStashFunction(
   api: appsync.GraphqlApi,
   id: string,
-  stash: Record<string, StashLiteral>,
+  stash: Record<string, StashValue> | undefined,
+  preamble: string | undefined,
 ): appsync.AppsyncFunction {
   const noneDS = api.node.tryFindChild('StashNoneDS')
     ? (api.node.findChild('StashNoneDS') as appsync.NoneDataSource)
     : api.addNoneDataSource('StashNoneDS');
-  const entries = Object.entries(stash)
-    .map(([k, v]) => `  ctx.stash[${JSON.stringify(k)}] = ${JSON.stringify(v)};`)
+  const entries = Object.entries(stash ?? {})
+    .map(([k, v]) => `  ctx.stash[${JSON.stringify(k)}] = ${emitStashValue(v)};`)
     .join('\n');
+  const preambleBlock = preamble && preamble.trim().length > 0
+    ? indent(preamble.trim(), '  ') + '\n'
+    : '';
   const code = `
 export function request(ctx) {
-${entries}
+${preambleBlock}${entries}
   return {};
 }
 
@@ -282,6 +303,26 @@ function pascal(s: string): string {
     .filter(Boolean)
     .map((p) => p[0]!.toUpperCase() + p.slice(1))
     .join('');
+}
+
+/**
+ * Emit a stash value. Literals (string/number/bool/null/array/object) are
+ * JSON-encoded. `{ code: "..." }` is emitted verbatim as a resolver-side
+ * expression, so callers can seed dynamic values out of ctx.identity,
+ * ctx.args, ctx.stash, etc.
+ */
+function emitStashValue(v: StashValue): string {
+  if (v !== null && typeof v === 'object' && !Array.isArray(v) && typeof (v as { code?: unknown }).code === 'string') {
+    return (v as { code: string }).code;
+  }
+  return JSON.stringify(v);
+}
+
+function indent(block: string, prefix: string): string {
+  return block
+    .split('\n')
+    .map((line) => (line.length > 0 ? prefix + line : line))
+    .join('\n');
 }
 
 const PIPELINE_PASSTHROUGH = appsync.Code.fromInline(`

@@ -13,6 +13,8 @@ simple-cdk is a thin layer on top of [AWS CDK](https://aws.amazon.com/cdk/). You
 | **New?** | [Getting Started](Getting-Started.md) |
 | **Want the big picture?** | [Architecture](Architecture.md) |
 | **Ready to customize?** | [Extending](Extending.md) |
+| **Adopting an existing stack?** | [Adopting an existing deployment](Adopting.md) |
+| **Hit an error?** | [Errors](Errors.md) |
 
 ---
 

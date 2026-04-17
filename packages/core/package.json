@@ -1,6 +1,6 @@
 {
   "name": "@simple-cdk/core",
-  "version": "4.0.0",
+  "version": "4.1.0",
   "type": "module",
   "description": "Engine for simple-cdk: a convention-over-configuration framework for AWS CDK with a pluggable adapter system for Lambda, DynamoDB, AppSync, and Cognito.",
   "main": "dist/index.js",

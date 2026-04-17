@@ -12,6 +12,9 @@ export type {
   CrudOperation,
   ResolverSpec,
   ResolverSource,
+  StashCode,
+  StashLiteral,
+  StashValue,
 } from './types.js';
 export { generateCrudCode } from './crud-generator.js';
 

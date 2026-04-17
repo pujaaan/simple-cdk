@@ -15,10 +15,26 @@ export type CrudOperation = 'get' | 'list' | 'create' | 'update' | 'delete';
 
 /**
  * Literal value types that can be seeded into `ctx.stash` before the auth
- * pipeline runs. Keep to JSON primitives — anything that needs dynamic
- * resolution should be set inside the auth function itself.
+ * pipeline runs. JSON-encoded into the emitted resolver function, so keep
+ * to JSON-safe values. Use `{ code: '...' }` to emit a dynamic expression.
  */
-export type StashLiteral = string | number | boolean;
+export type StashLiteral = string | number | boolean | null | StashLiteral[] | { [key: string]: StashLiteral };
+
+/**
+ * Dynamic stash value — the `code` string is emitted **verbatim** as a
+ * resolver-side expression, not JSON-encoded. Use to seed values that
+ * depend on the request:
+ *
+ *   stashBefore: { tenantId: { code: 'ctx.identity.claims["custom:tenantId"]' } }
+ *
+ * Emits: `ctx.stash.tenantId = ctx.identity.claims["custom:tenantId"];`
+ */
+export interface StashCode {
+  code: string;
+}
+
+/** A seeded stash value — either a JSON-safe literal or a `{ code }` expression. */
+export type StashValue = StashLiteral | StashCode;
 
 export interface CrudGenSpec {
   /** Models to auto-generate CRUD for. Use 'all' or a list of model names. */
@@ -30,10 +46,31 @@ export interface CrudGenSpec {
   /**
    * Per-(op, model) metadata seeded into `ctx.stash` before the auth
    * function runs. Return `undefined` to skip seeding for that pairing.
-   * Typical use: tag generated resolvers with their operation type, model
-   * name, or required roles for a centralized auth function to read.
+   *
+   * Values may be literals (JSON-encoded) or `{ code: '...' }` (emitted
+   * verbatim as a resolver-side expression). Typical use: tag generated
+   * resolvers with their operation type, model name, or required roles for
+   * a centralized auth function to read — and pull per-request values like
+   * `tenantId` or `userId` out of `ctx.identity` for tenant-scoping.
+   *
+   *   stashBeforeFor: () => ({
+   *     tenantId: { code: 'ctx.identity.claims["custom:tenantId"]' },
+   *     userId:   { code: 'ctx.identity.sub' },
+   *   })
    */
-  stashBeforeFor?: (op: CrudOperation, modelName: string) => Record<string, StashLiteral> | undefined;
+  stashBeforeFor?: (op: CrudOperation, modelName: string) => Record<string, StashValue> | undefined;
+  /**
+   * Raw resolver-side code inserted before the stash-seed block, on every
+   * generated CRUD stash function. Use for multi-statement preambles that
+   * don't fit the `stashBeforeFor` key/value shape (e.g. parsing a JWT,
+   * deriving a composite key). Return `undefined` to skip.
+   *
+   *   stashCodeFor: () => `
+   *     const claims = ctx.identity.claims ?? {};
+   *     if (!claims["custom:tenantId"]) util.unauthorized();
+   *   `
+   */
+  stashCodeFor?: (op: CrudOperation, modelName: string) => string | undefined;
   /**
    * Override the generated resolver code on a per-(op, model) basis. Return
    * a string to use as the AppsyncFunction code; return `null`/`undefined`
@@ -61,10 +98,18 @@ export interface ResolverSpec {
   bypassAuth?: boolean;
   /**
    * Metadata seeded into `ctx.stash` before the auth function runs.
-   * Intended for static operation metadata (operation type, allowed roles,
-   * a field path to the tenant id) that a central auth function reads.
+   * Values may be literals (JSON-encoded) or `{ code: '...' }` expressions
+   * (emitted verbatim). Use the latter to pull per-request values out of
+   * `ctx.identity` / `ctx.args` for tenant-scoping or similar.
    */
-  stashBefore?: Record<string, StashLiteral>;
+  stashBefore?: Record<string, StashValue>;
+  /**
+   * Raw resolver-side JS inserted before the stash-seed block. Use for
+   * multi-statement preambles (parsing a JWT claim, computing a composite
+   * key, early-returning an unauthorized). Runs on the same JS runtime
+   * AppSync uses (`@aws-appsync/utils` is in scope via `util`).
+   */
+  stashCode?: string;
 }
 
 export type ResolverSource =

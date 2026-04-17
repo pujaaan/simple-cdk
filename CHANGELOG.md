@@ -4,6 +4,32 @@ All notable changes are documented here. The format follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+## [4.1.0] - 2026-04-16
+
+### Added
+
+- **`@simple-cdk/appsync`**: **dynamic stash expressions**. Stash values can now be `{ code: 'ctx.identity.claims["custom:tenantId"]' }` instead of JSON literals — the expression is emitted verbatim into the resolver JS, so auth pipelines can pull per-request values out of `ctx.identity` / `ctx.args` / `ctx.stash`. Unblocks tenant-isolation patterns without forking the adapter or abandoning `generateCrud`.
+  - `StashValue = StashLiteral | { code: string }` (new)
+  - `ResolverSpec.stashBefore` and `CrudGenSpec.stashBeforeFor` accept `StashValue`.
+  - `ResolverSpec.stashCode?: string` and `CrudGenSpec.stashCodeFor?: (op, model) => string` — raw resolver-side JS inserted before the stash-seed block for multi-statement preambles (JWT parsing, composite keys, early-unauthorized checks).
+  - Example:
+    ```ts
+    appSyncAdapter({
+      generateCrud: {
+        models: 'all',
+        stashBeforeFor: () => ({
+          tenantId: { code: 'ctx.identity.claims["custom:tenantId"]' },
+          userId:   { code: 'ctx.identity.sub' },
+        }),
+      },
+    })
+    ```
+- **docs**: [Adopting an existing deployment](docs/Adopting.md) — first-class brownfield adoption guide covering every construct-id and physical-name override per adapter, inventory → diff → deploy workflow, caveats, and a checklist. Linked from sidebar and home.
+
+### Changed
+
+- `StashLiteral` now permits `null`, arrays, and nested objects (still JSON-encoded) in addition to the previous `string | number | boolean`. Values that look like `{ code: string }` are treated as dynamic expressions, not literals — if you need the literal object `{ code: "foo" }` in the stash, wrap it as `{ value: { code: "foo" } }` or use `stashCode` to set it manually.
+
 ## [4.0.0] - 2026-04-16
 
 ### Changed
