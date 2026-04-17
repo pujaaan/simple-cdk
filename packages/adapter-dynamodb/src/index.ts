@@ -3,6 +3,7 @@ import type { aws_dynamodb } from 'aws-cdk-lib';
 import { discoverModels } from './discover.js';
 import { registerTables } from './register.js';
 import type { DynamoDbAdapterOptions, DynamoDbResource } from './types.js';
+import { wireStreamTargets } from './wire.js';
 
 export type {
   AttrType,
@@ -12,6 +13,7 @@ export type {
   GsiConfig,
   KeyDef,
   StreamMode,
+  StreamTargetOptions,
 } from './types.js';
 
 const DEFAULT_MATCH = ['.model.ts', '.model.mts', '.model.js', '.model.mjs'];
@@ -27,6 +29,7 @@ export function dynamoDbAdapter(opts: DynamoDbAdapterOptions = {}): Adapter {
     name: 'dynamodb',
     discover: (ctx) => discoverModels(ctx.rootDir, dir, match),
     register: (ctx) => registerTables(ctx, opts),
+    wire: (ctx) => wireStreamTargets(ctx),
   };
 }
 

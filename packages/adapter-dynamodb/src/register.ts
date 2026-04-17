@@ -16,8 +16,13 @@ export function registerTables(ctx: RegisterContext, opts: DynamoDbAdapterOption
 
   for (const resource of ctx.resources as DynamoDbResource[]) {
     const cfg = resource.config.modelConfig;
-    const stack = ctx.stack(cfg.stack ?? stackName);
+    const stack = cfg.stack
+      ? ctx.stack(cfg.stack)
+      : opts.stack ?? ctx.stack(stackName, opts.stackId ? { id: opts.stackId } : undefined);
     const id = cfg.constructId ?? pascal(resource.name) + 'Table';
+
+    const streamMode: StreamMode | undefined =
+      cfg.stream ?? (cfg.streamTargets && cfg.streamTargets.length > 0 ? 'NEW_AND_OLD_IMAGES' : undefined);
 
     const table = new ddb.Table(stack, id, {
       tableName: `${ctx.config.app}-${ctx.config.stage}-${resource.name}`,
@@ -28,7 +33,7 @@ export function registerTables(ctx: RegisterContext, opts: DynamoDbAdapterOption
       pointInTimeRecoverySpecification: {
         pointInTimeRecoveryEnabled: cfg.pointInTimeRecovery ?? true,
       },
-      stream: toStreamView(cfg.stream),
+      stream: toStreamView(streamMode),
       timeToLiveAttribute: cfg.ttlAttribute,
       removalPolicy: removal,
     });
