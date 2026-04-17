@@ -1,7 +1,7 @@
-import type { Adapter, WireContext } from '@simple-cdk/core';
+import { adapterNotRun, SimpleCdkError, type Adapter, type WireContext } from '@simple-cdk/core';
 import type { aws_ec2, aws_rds, aws_secretsmanager } from 'aws-cdk-lib';
 import { getBuiltRds, registerRdsInstance } from './register.js';
-import type { RdsAdapterOptions } from './types.js';
+import type { BuiltRds, RdsAdapterOptions } from './types.js';
 
 export type { BuiltRds, RdsAdapterOptions, RdsEngineKind } from './types.js';
 
@@ -24,32 +24,34 @@ export function rdsAdapter(opts: RdsAdapterOptions): Adapter {
   };
 }
 
-export function getRdsInstance(ctx: Pick<WireContext, 'app'>): aws_rds.DatabaseInstance {
+function requireBuilt(ctx: Pick<WireContext, 'app'>, kind: string): BuiltRds {
   const built = getBuiltRds(ctx);
-  if (!built) throw new Error('RDS not built — did the rds adapter run?');
-  return built.instance;
+  if (!built) {
+    throw adapterNotRun({ adapterName: 'rds', kind, adapterCall: 'rdsAdapter({ engine: "postgres" })' });
+  }
+  return built;
+}
+
+export function getRdsInstance(ctx: Pick<WireContext, 'app'>): aws_rds.DatabaseInstance {
+  return requireBuilt(ctx, 'RDS instance').instance;
 }
 
 export function getRdsSecret(ctx: Pick<WireContext, 'app'>): aws_secretsmanager.ISecret {
-  const built = getBuiltRds(ctx);
-  if (!built) throw new Error('RDS not built — did the rds adapter run?');
+  const built = requireBuilt(ctx, 'RDS credentials secret');
   if (!built.secret) {
-    throw new Error(
-      'RDS adapter has no managed secret — credentials were supplied via `fromPassword`. ' +
-        'Access the password directly from your `credentials` option instead.',
-    );
+    throw new SimpleCdkError({
+      code: 'USER_INPUT',
+      message: 'RDS adapter has no managed secret — credentials were supplied via `fromPassword`.',
+      hint: 'access the password directly from the `credentials` option you passed to rdsAdapter(), or switch to `rds.Credentials.fromGeneratedSecret(...)` to get a managed secret back.',
+    });
   }
   return built.secret;
 }
 
 export function getRdsVpc(ctx: Pick<WireContext, 'app'>): aws_ec2.IVpc {
-  const built = getBuiltRds(ctx);
-  if (!built) throw new Error('RDS not built — did the rds adapter run?');
-  return built.vpc;
+  return requireBuilt(ctx, 'RDS VPC').vpc;
 }
 
 export function getRdsSecurityGroup(ctx: Pick<WireContext, 'app'>): aws_ec2.ISecurityGroup {
-  const built = getBuiltRds(ctx);
-  if (!built) throw new Error('RDS not built — did the rds adapter run?');
-  return built.securityGroup;
+  return requireBuilt(ctx, 'RDS security group').securityGroup;
 }

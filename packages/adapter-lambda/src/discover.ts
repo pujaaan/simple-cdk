@@ -1,13 +1,17 @@
 import { readdir, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import type { Resource } from '@simple-cdk/core';
+import type { DiscoveryReport, Resource } from '@simple-cdk/core';
 import type { LambdaResourceConfig, LambdaFunctionConfig } from './types.js';
 
 const HANDLER_NAMES = ['handler.ts', 'handler.js', 'handler.mts', 'handler.mjs'];
 const CONFIG_NAMES = ['config.ts', 'config.js', 'config.mts', 'config.mjs'];
 
-export async function discoverLambdas(rootDir: string, dir: string): Promise<Resource<LambdaResourceConfig>[]> {
+export async function discoverLambdas(
+  rootDir: string,
+  dir: string,
+  report?: DiscoveryReport,
+): Promise<Resource<LambdaResourceConfig>[]> {
   const base = join(rootDir, dir);
   let entries;
   try {
@@ -21,9 +25,31 @@ export async function discoverLambdas(rootDir: string, dir: string): Promise<Res
     if (!entry.isDirectory()) continue;
     const fnDir = join(base, entry.name);
     const handlerFile = await pickFile(fnDir, HANDLER_NAMES);
-    if (!handlerFile) continue;
+    if (!handlerFile) {
+      report?.add({
+        adapter: 'lambda',
+        file: fnDir,
+        severity: 'warn',
+        reason: `folder contains no handler file — expected one of: ${HANDLER_NAMES.join(', ')}`,
+      });
+      continue;
+    }
     const configFile = await pickFile(fnDir, CONFIG_NAMES);
-    const functionConfig = configFile ? await loadConfig(configFile) : {};
+    let functionConfig: LambdaFunctionConfig = {};
+    if (configFile) {
+      const loaded = await loadConfig(configFile);
+      if (!loaded.ok) {
+        report?.add({
+          adapter: 'lambda',
+          file: configFile,
+          severity: 'error',
+          reason: loaded.reason,
+          cause: loaded.cause,
+        });
+        continue;
+      }
+      functionConfig = loaded.value;
+    }
     found.push({
       type: 'lambda',
       name: functionConfig.name ?? entry.name,
@@ -47,13 +73,21 @@ async function pickFile(dir: string, names: string[]): Promise<string | undefine
   return undefined;
 }
 
-async function loadConfig(file: string): Promise<LambdaFunctionConfig> {
-  // TS configs work when synth runs through a TS-aware loader (tsx, ts-node).
-  // If the loader isn't present, we fall back to defaults silently.
+type LoadResult =
+  | { ok: true; value: LambdaFunctionConfig }
+  | { ok: false; reason: string; cause?: unknown };
+
+async function loadConfig(file: string): Promise<LoadResult> {
   try {
     const mod = await import(pathToFileURL(file).href);
-    return (mod.default ?? mod.config ?? {}) as LambdaFunctionConfig;
-  } catch {
-    return {};
+    const cfg = ((mod as { default?: unknown; config?: unknown }).default ??
+      (mod as { config?: unknown }).config ?? {}) as LambdaFunctionConfig;
+    return { ok: true, value: cfg };
+  } catch (cause) {
+    return {
+      ok: false,
+      reason: 'failed to import function config.ts (syntax error, missing dependency, or bad export)',
+      cause,
+    };
   }
 }

@@ -40,10 +40,40 @@ export interface ResolvedAppConfig extends AppConfig {
   stageConfig: StageConfig;
 }
 
+/**
+ * A per-file problem discovered during an adapter's discover phase (e.g. a
+ * model file that failed to import, or a function folder with no handler).
+ * Collected into the engine's DiscoveryReport so the CLI can print them
+ * all at once instead of failing on the first one.
+ */
+export interface DiscoveryIssue {
+  adapter: string;
+  /** Absolute path to the offending file or folder. */
+  file: string;
+  /** Short, user-facing explanation. */
+  reason: string;
+  /** Severity: 'error' blocks synth/deploy; 'warn' is surfaced but non-fatal. */
+  severity: 'error' | 'warn';
+  /** Underlying cause (e.g. import error); shown in debug mode. */
+  cause?: unknown;
+}
+
+export interface DiscoveryReport {
+  readonly issues: readonly DiscoveryIssue[];
+  add(issue: DiscoveryIssue): void;
+  hasErrors(): boolean;
+}
+
 export interface DiscoveryContext {
   config: ResolvedAppConfig;
   rootDir: string;
   log: Logger;
+  /**
+   * Collector for per-file discovery problems. Adapters should report
+   * malformed files here instead of swallowing them, so the CLI can
+   * tell the user what went wrong at `list`/`deploy` time.
+   */
+  report: DiscoveryReport;
 }
 
 export interface StackOptions {

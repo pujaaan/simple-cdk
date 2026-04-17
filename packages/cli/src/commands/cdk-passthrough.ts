@@ -3,11 +3,12 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createInterface } from 'node:readline/promises';
 import { stdin, stdout } from 'node:process';
-import type { AppConfig } from '@simple-cdk/core';
+import { SimpleCdkError, type AppConfig } from '@simple-cdk/core';
 import { loadConfig } from '../load-config.js';
 import type { ParsedArgs } from '../args.js';
 import { flagAsString } from '../args.js';
 import { renderDiff, renderDeploy, bold, dim } from '../output.js';
+import { CdkSubprocessError } from '../error-present.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -29,7 +30,11 @@ export function makeCdkCommand(verb: CdkVerb) {
 
     const stages = await resolveStages(config, verb, { stageFlag, all });
     if (stages.length === 0) {
-      throw new Error('No stages configured. Add one to simple-cdk.config.ts.');
+      throw new SimpleCdkError({
+        code: 'CONFIG_INVALID',
+        message: 'no stages configured.',
+        hint: 'add at least one stage to `stages` in simple-cdk.config.ts (e.g. `{ dev: { region: "us-east-1" } }`).',
+      });
     }
 
     for (const stage of stages) {
@@ -80,7 +85,7 @@ async function runOnce(opts: {
     new Promise<void>((resolveExit, rejectExit) => {
       child.on('exit', (code) => {
         if (code === 0) resolveExit();
-        else rejectExit(new Error(`cdk ${verb} exited with code ${code}`));
+        else rejectExit(new CdkSubprocessError(verb, code ?? 1));
       });
       child.on('error', rejectExit);
     }),
@@ -119,7 +124,12 @@ async function resolveStages(
       if (asNum >= 1 && asNum <= names.length) return [names[asNum - 1]!];
     }
     if (names.includes(answer)) return [answer];
-    throw new Error(`Invalid stage: ${answer}. Expected 1-${names.length + 1}, a stage name, or "all".`);
+    throw new SimpleCdkError({
+      code: 'USER_INPUT',
+      message: `invalid stage choice: "${answer}".`,
+      available: [...names, 'all'],
+      hint: `expected 1-${names.length + 1}, a stage name, or "all".`,
+    });
   } finally {
     rl.close();
   }

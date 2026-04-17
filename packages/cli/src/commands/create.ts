@@ -1,6 +1,7 @@
 import { writeFile, mkdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { SimpleCdkError } from '@simple-cdk/core';
 import type { ParsedArgs } from '../args.js';
 import { flagAsString } from '../args.js';
 
@@ -34,27 +35,39 @@ const DEFAULT_DIRS: Record<Kind, string> = {
 export async function createCommand(args: ParsedArgs): Promise<void> {
   const [, rawKind, rawName] = args.positional;
   if (!rawKind || !rawName) {
-    console.error('Usage: simple-cdk create <model|function|trigger> <name> [--dir <path>]');
-    process.exit(1);
+    throw new SimpleCdkError({
+      code: 'USER_INPUT',
+      message: 'missing arguments for `simple-cdk create`.',
+      hint: 'usage: simple-cdk create <model|function|trigger> <name> [--dir <path>]',
+    });
   }
 
   const kind = parseKind(rawKind);
   if (!kind) {
-    console.error(`Unknown create kind: ${rawKind}. Expected one of: model, function, trigger.`);
-    process.exit(1);
+    throw new SimpleCdkError({
+      code: 'USER_INPUT',
+      message: `unknown create kind: "${rawKind}".`,
+      available: ['model', 'function', 'trigger'],
+      hint: 'expected one of: model, function, trigger.',
+    });
   }
 
   const name = rawName.trim();
   if (!/^[a-zA-Z][a-zA-Z0-9_-]*$/.test(name)) {
-    console.error(`Invalid name "${name}". Use letters, digits, hyphens, underscores; start with a letter.`);
-    process.exit(1);
+    throw new SimpleCdkError({
+      code: 'USER_INPUT',
+      message: `invalid name "${name}".`,
+      hint: 'use letters, digits, hyphens, or underscores; must start with a letter.',
+    });
   }
 
   if (kind === 'trigger' && !(COGNITO_TRIGGERS as readonly string[]).includes(name)) {
-    console.error(
-      `"${name}" is not a recognized Cognito trigger. Valid triggers:\n  ${COGNITO_TRIGGERS.join('\n  ')}`,
-    );
-    process.exit(1);
+    throw new SimpleCdkError({
+      code: 'USER_INPUT',
+      message: `"${name}" is not a recognized Cognito trigger.`,
+      available: [...COGNITO_TRIGGERS],
+      hint: 'pick one of the valid trigger names above.',
+    });
   }
 
   const cwd = process.cwd();
@@ -83,8 +96,11 @@ async function scaffoldModel(cwd: string, dir: string, name: string): Promise<vo
   await mkdir(fullDir, { recursive: true });
   const filePath = join(fullDir, `${name}.model.ts`);
   if (existsSync(filePath)) {
-    console.error(`Already exists: ${filePath}`);
-    process.exit(1);
+    throw new SimpleCdkError({
+      code: 'USER_INPUT',
+      message: `file already exists: ${filePath}.`,
+      hint: 'delete or rename the existing file, or pass a different <name>.',
+    });
   }
   const content = `import type { DynamoDbModelConfig } from '@simple-cdk/dynamodb';
 
@@ -104,8 +120,11 @@ async function scaffoldFunction(cwd: string, dir: string, name: string): Promise
   await mkdir(fullDir, { recursive: true });
   const handlerPath = join(fullDir, 'handler.ts');
   if (existsSync(handlerPath)) {
-    console.error(`Already exists: ${handlerPath}`);
-    process.exit(1);
+    throw new SimpleCdkError({
+      code: 'USER_INPUT',
+      message: `file already exists: ${handlerPath}.`,
+      hint: 'delete or rename the existing handler, or pass a different <name>.',
+    });
   }
   const handler = `export const handler = async (event: unknown) => {
   return { ok: true };
@@ -120,8 +139,11 @@ async function scaffoldTrigger(cwd: string, dir: string, name: string): Promise<
   await mkdir(fullDir, { recursive: true });
   const handlerPath = join(fullDir, 'handler.ts');
   if (existsSync(handlerPath)) {
-    console.error(`Already exists: ${handlerPath}`);
-    process.exit(1);
+    throw new SimpleCdkError({
+      code: 'USER_INPUT',
+      message: `file already exists: ${handlerPath}.`,
+      hint: 'delete or rename the existing handler, or pass a different <name>.',
+    });
   }
   const handler = `export const handler = async (event: any) => {
   // Cognito ${name} trigger. Mutate \`event\` or throw to reject.

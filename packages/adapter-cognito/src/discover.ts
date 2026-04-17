@@ -1,6 +1,6 @@
 import { readdir, stat } from 'node:fs/promises';
 import { join } from 'node:path';
-import type { Resource } from '@simple-cdk/core';
+import type { DiscoveryReport, Resource } from '@simple-cdk/core';
 import type { TriggerName, TriggerResourceConfig } from './types.js';
 
 const HANDLER_NAMES = ['handler.ts', 'handler.js', 'handler.mts', 'handler.mjs'];
@@ -18,7 +18,11 @@ const VALID_TRIGGERS: ReadonlySet<TriggerName> = new Set([
   'user-migration',
 ]);
 
-export async function discoverTriggers(rootDir: string, dir: string): Promise<Resource<TriggerResourceConfig>[]> {
+export async function discoverTriggers(
+  rootDir: string,
+  dir: string,
+  report?: DiscoveryReport,
+): Promise<Resource<TriggerResourceConfig>[]> {
   const base = join(rootDir, dir);
   let entries;
   try {
@@ -30,9 +34,26 @@ export async function discoverTriggers(rootDir: string, dir: string): Promise<Re
   const found: Resource<TriggerResourceConfig>[] = [];
   for (const entry of entries) {
     if (!entry.isDirectory()) continue;
-    if (!VALID_TRIGGERS.has(entry.name as TriggerName)) continue;
-    const handler = await pickHandler(join(base, entry.name));
-    if (!handler) continue;
+    const folder = join(base, entry.name);
+    if (!VALID_TRIGGERS.has(entry.name as TriggerName)) {
+      report?.add({
+        adapter: 'cognito',
+        file: folder,
+        severity: 'warn',
+        reason: `folder "${entry.name}" is not a recognized Cognito trigger — expected one of: ${[...VALID_TRIGGERS].join(', ')}`,
+      });
+      continue;
+    }
+    const handler = await pickHandler(folder);
+    if (!handler) {
+      report?.add({
+        adapter: 'cognito',
+        file: folder,
+        severity: 'warn',
+        reason: `trigger folder has no handler file — expected one of: ${HANDLER_NAMES.join(', ')}`,
+      });
+      continue;
+    }
     found.push({
       type: 'cognito-trigger',
       name: entry.name,

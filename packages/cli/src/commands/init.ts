@@ -5,6 +5,7 @@ import { createInterface, type Interface } from 'node:readline/promises';
 import { stdin, stdout } from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, basename } from 'node:path';
+import { SimpleCdkError } from '@simple-cdk/core';
 
 interface InitChoices {
   appName: string;
@@ -38,8 +39,11 @@ export async function initCommand(): Promise<void> {
 
   const anyAdapter = Object.values(choices.adapters).some(Boolean);
   if (!anyAdapter) {
-    console.error('No adapters selected. Pick at least one. Aborting.');
-    process.exit(1);
+    throw new SimpleCdkError({
+      code: 'USER_INPUT',
+      message: 'no adapters were selected.',
+      hint: 'pick at least one adapter when prompted — a config without adapters has nothing to deploy.',
+    });
   }
 
   console.log('');

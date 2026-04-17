@@ -1,7 +1,7 @@
 import { stat } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import type { AppConfig } from '@simple-cdk/core';
+import { SimpleCdkError, type AppConfig } from '@simple-cdk/core';
 
 const DEFAULT_NAMES = [
   'simple-cdk.config.ts',
@@ -19,15 +19,36 @@ export interface LoadedConfig {
 export async function loadConfig(cwd: string, override?: string): Promise<LoadedConfig> {
   const path = override ? resolve(cwd, override) : await pickFirstExisting(cwd);
   if (!path) {
-    throw new Error(
-      `No config found. Looked for ${DEFAULT_NAMES.join(', ')} in ${cwd}. ` +
-        `Use --config <path> or create simple-cdk.config.ts.`,
-    );
+    throw new SimpleCdkError({
+      code: 'CONFIG_NOT_FOUND',
+      message: `no simple-cdk config found.`,
+      resource: cwd,
+      available: DEFAULT_NAMES,
+      hint: `create a simple-cdk.config.ts (see "simple-cdk init") or pass --config <path>.`,
+    });
   }
-  const mod = await import(pathToFileURL(path).href);
-  const config = (mod.default ?? mod.config) as AppConfig | undefined;
+  let mod: unknown;
+  try {
+    mod = await import(pathToFileURL(path).href);
+  } catch (err) {
+    // If the user's config threw a SimpleCdkError (e.g. from defineConfig's
+    // validation), surface it directly — it already has actionable details.
+    if (err instanceof SimpleCdkError) throw err;
+    throw new SimpleCdkError({
+      code: 'CONFIG_INVALID',
+      message: `failed to load config at ${path}.`,
+      hint: 'check the config file for syntax errors, missing imports, or unresolved packages — run with SIMPLE_CDK_DEBUG=1 to see the underlying error.',
+      cause: err,
+    });
+  }
+  const config = ((mod as { default?: unknown; config?: unknown }).default ??
+    (mod as { config?: unknown }).config) as AppConfig | undefined;
   if (!config) {
-    throw new Error(`${path} must export a config (default export or named "config")`);
+    throw new SimpleCdkError({
+      code: 'CONFIG_INVALID',
+      message: `${path} must export a config (default export or named "config").`,
+      hint: 'add `export default defineConfig({ ... })` at the end of your config file.',
+    });
   }
   return { config, path, rootDir: cwd };
 }

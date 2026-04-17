@@ -1,9 +1,12 @@
 import { App, Stack, Tags } from 'aws-cdk-lib';
 import { resolveConfig, type ResolveOptions } from './config.js';
 import { createLogger } from './logger.js';
+import { createDiscoveryReport } from './discovery-report.js';
+import { SimpleCdkError } from './error.js';
 import type {
   Adapter,
   AppConfig,
+  DiscoveryReport,
   Resource,
   ResolvedAppConfig,
   RegisterContext,
@@ -27,6 +30,7 @@ export class Engine {
   private readonly log: Logger;
   private readonly resourcesByAdapter = new Map<string, Resource[]>();
   private readonly stacks = new Map<string, Stack>();
+  private readonly discoveryReport: DiscoveryReport = createDiscoveryReport();
 
   constructor(config: AppConfig, opts: ResolveOptions = {}) {
     this.resolved = resolveConfig(config, opts);
@@ -37,11 +41,27 @@ export class Engine {
     return this.resolved;
   }
 
+  /** Per-file discovery problems collected across all adapters. */
+  get report(): DiscoveryReport {
+    return this.discoveryReport;
+  }
+
   async synth(opts: SynthOptions = {}): Promise<App> {
     const app = opts.cdkApp ?? new App();
     this.log.info(`synth start`, { app: this.resolved.app, stage: this.resolved.stage });
 
     await this.runDiscover();
+    if (this.discoveryReport.hasErrors()) {
+      const errs = this.discoveryReport.issues.filter((i) => i.severity === 'error');
+      const body = errs
+        .map((i) => `  - [${i.adapter}] ${i.file}: ${i.reason}`)
+        .join('\n');
+      throw new SimpleCdkError({
+        code: 'DISCOVERY_FAILED',
+        message: `discovery produced ${errs.length} error(s); refusing to synth.\n${body}`,
+        hint: 'run `simple-cdk list` to see all issues, then fix the listed files. Set SIMPLE_CDK_DEBUG=1 for underlying errors.',
+      });
+    }
     await this.runRegister(app);
     await this.runWire(app);
 
@@ -50,6 +70,12 @@ export class Engine {
       resources: countResources(this.resourcesByAdapter),
     });
     return app;
+  }
+
+  /** Run discovery only, returning the per-adapter resources. Used by `simple-cdk list`. */
+  async discover(): Promise<Map<string, Resource[]>> {
+    await this.runDiscover();
+    return this.resourcesByAdapter;
   }
 
   private async runDiscover(): Promise<void> {
@@ -63,6 +89,7 @@ export class Engine {
         config: this.resolved,
         rootDir: this.resolved.rootDir,
         log: adapterLog,
+        report: this.discoveryReport,
       });
       this.resourcesByAdapter.set(adapter.name, resources);
       adapterLog.info(`discovered ${resources.length} resource(s)`);

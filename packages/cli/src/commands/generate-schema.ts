@@ -2,7 +2,7 @@ import { writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
-import { Engine } from '@simple-cdk/core';
+import { Engine, SimpleCdkError } from '@simple-cdk/core';
 import { loadConfig } from '../load-config.js';
 import type { ParsedArgs } from '../args.js';
 import { flagAsString } from '../args.js';
@@ -26,21 +26,31 @@ export async function generateSchemaCommand(args: ParsedArgs): Promise<void> {
 
   const adapter = engine.config.adapters.find((a) => a.name === 'dynamodb');
   if (!adapter || !adapter.discover) {
-    console.error('No dynamodb adapter found in config — nothing to generate.');
-    process.exit(1);
+    throw new SimpleCdkError({
+      code: 'USER_INPUT',
+      message: 'no dynamodb adapter found in config — nothing to generate.',
+      hint: 'add dynamoDbAdapter() to your config.adapters before running generate-schema.',
+    });
   }
 
-  const resources = await adapter.discover({
-    config: engine.config,
-    rootDir: engine.config.rootDir,
-    log: silentLogger(),
-  });
+  const resourcesByAdapter = await engine.discover();
+  if (engine.report.hasErrors()) {
+    const errs = engine.report.issues.filter((i) => i.severity === 'error');
+    const body = errs.map((i) => `  - [${i.adapter}] ${i.file}: ${i.reason}`).join('\n');
+    throw new SimpleCdkError({
+      code: 'DISCOVERY_FAILED',
+      message: `cannot generate schema — ${errs.length} discovery error(s):\n${body}`,
+      hint: 'fix the listed files (run `simple-cdk list` for the full report) and try again.',
+    });
+  }
 
+  const resources = resourcesByAdapter.get('dynamodb') ?? [];
   if (resources.length === 0) {
-    console.error(
-      'The dynamodb adapter discovered no models. Check your `backend/models/*.model.ts` files.',
-    );
-    process.exit(1);
+    throw new SimpleCdkError({
+      code: 'USER_INPUT',
+      message: 'the dynamodb adapter discovered no models.',
+      hint: 'create at least one backend/models/<name>.model.ts — see README for the expected shape.',
+    });
   }
 
   const named = resources.map((r) => ({
@@ -64,23 +74,21 @@ async function loadGenerator(
   try {
     resolved = req.resolve('@simple-cdk/dynamodb');
   } catch {
-    console.error(
-      '@simple-cdk/dynamodb is not installed. Install it with `npm install @simple-cdk/dynamodb` and try again.',
-    );
-    process.exit(1);
+    throw new SimpleCdkError({
+      code: 'USER_INPUT',
+      message: '@simple-cdk/dynamodb is not installed.',
+      hint: 'install it with `npm install @simple-cdk/dynamodb` and try again.',
+    });
   }
   const mod = (await import(pathToFileURL(resolved).href)) as {
-    generateGraphQLSchema: (models: unknown[]) => string;
+    generateGraphQLSchema?: (models: unknown[]) => string;
   };
   if (typeof mod.generateGraphQLSchema !== 'function') {
-    console.error(
-      'Installed @simple-cdk/dynamodb does not export generateGraphQLSchema — upgrade to 1.1.0 or later.',
-    );
-    process.exit(1);
+    throw new SimpleCdkError({
+      code: 'USER_INPUT',
+      message: 'installed @simple-cdk/dynamodb does not export generateGraphQLSchema.',
+      hint: 'upgrade @simple-cdk/dynamodb to 1.1.0 or later.',
+    });
   }
   return mod.generateGraphQLSchema;
-}
-
-function silentLogger() {
-  return { debug: () => {}, info: () => {}, warn: () => {}, error: () => {} };
 }

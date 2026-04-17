@@ -1,5 +1,5 @@
 import { Duration, aws_lambda as lambda, aws_lambda_event_sources as sources } from 'aws-cdk-lib';
-import type { WireContext } from '@simple-cdk/core';
+import { resourceNotFound, SimpleCdkError, type WireContext } from '@simple-cdk/core';
 import type { DynamoDbResource, StreamTargetOptions } from './types.js';
 
 /**
@@ -21,15 +21,21 @@ export function wireStreamTargets(ctx: WireContext): void {
     for (const name of targets) {
       const match = lambdas.find((l) => l.name === name);
       if (!match) {
-        throw new Error(
-          `DynamoDB table "${table.name}" declares streamTarget "${name}", but no Lambda with that name was discovered.`,
-        );
+        throw resourceNotFound({
+          kind: 'Lambda',
+          name,
+          available: lambdas.map((l) => l.name),
+          adapterName: 'lambda',
+          hint: `DynamoDB table "${table.name}" declares streamTargets: ["${name}"] — create backend/functions/${name}/handler.ts or remove "${name}" from the table's streamTargets.`,
+        });
       }
       const fn = match.config.construct;
       if (!fn) {
-        throw new Error(
-          `DynamoDB table "${table.name}" streamTarget "${name}" was discovered but not registered — check lambda adapter order.`,
-        );
+        throw new SimpleCdkError({
+          code: 'ADAPTER_ORDER',
+          message: `DynamoDB table "${table.name}" references streamTarget Lambda "${name}", which was discovered but not registered yet.`,
+          hint: 'list lambdaAdapter() before dynamoDbAdapter() in your adapters array so Lambdas are registered before their stream subscriptions are wired.',
+        });
       }
       fn.addEventSource(new sources.DynamoEventSource(table.config.construct, toSourceProps(cfg.streamTargetOptions)));
     }

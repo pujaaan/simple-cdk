@@ -1,7 +1,7 @@
-import type { Adapter, WireContext } from '@simple-cdk/core';
+import { adapterNotRun, requireResource, type Adapter, type WireContext } from '@simple-cdk/core';
 import type { aws_cognito, aws_lambda_nodejs } from 'aws-cdk-lib';
 import { discoverTriggers } from './discover.js';
-import { getBuiltCognito, registerUserPool } from './register.js';
+import { getBuiltCognito, registerUserPool, type BuiltCognito } from './register.js';
 import type { CognitoAdapterOptions, TriggerName } from './types.js';
 
 export type { CognitoAdapterOptions, TriggerName, TriggerResource } from './types.js';
@@ -15,29 +15,29 @@ export function cognitoAdapter(opts: CognitoAdapterOptions = {}): Adapter {
   const triggersDir = opts.triggersDir ?? 'backend/triggers';
   return {
     name: 'cognito',
-    discover: (ctx) => discoverTriggers(ctx.rootDir, triggersDir),
+    discover: (ctx) => discoverTriggers(ctx.rootDir, triggersDir, ctx.report),
     register: (ctx) => {
       registerUserPool(ctx, opts);
     },
   };
 }
 
-/** Look up the registered user pool from another adapter's wire phase. */
-export function getUserPool(ctx: Pick<WireContext, 'app'>): aws_cognito.UserPool {
+function requireBuilt(ctx: Pick<WireContext, 'app'>, kind: string): BuiltCognito {
   const built = getBuiltCognito(ctx);
   if (!built) {
-    throw new Error('Cognito user pool not built — did the cognito adapter run?');
+    throw adapterNotRun({ adapterName: 'cognito', kind, adapterCall: 'cognitoAdapter()' });
   }
-  return built.userPool;
+  return built;
+}
+
+/** Look up the registered user pool from another adapter's wire phase. */
+export function getUserPool(ctx: Pick<WireContext, 'app'>): aws_cognito.UserPool {
+  return requireBuilt(ctx, 'Cognito user pool').userPool;
 }
 
 /** Look up the registered web client from another adapter's wire phase. */
 export function getUserPoolClient(ctx: Pick<WireContext, 'app'>): aws_cognito.UserPoolClient {
-  const built = getBuiltCognito(ctx);
-  if (!built) {
-    throw new Error('Cognito client not built — did the cognito adapter run?');
-  }
-  return built.client;
+  return requireBuilt(ctx, 'Cognito user pool client').client;
 }
 
 /**
@@ -49,13 +49,12 @@ export function getCognitoTrigger(
   ctx: Pick<WireContext, 'app'>,
   name: TriggerName,
 ): aws_lambda_nodejs.NodejsFunction {
-  const built = getBuiltCognito(ctx);
-  if (!built) {
-    throw new Error('Cognito not built — did the cognito adapter run?');
-  }
-  const fn = built.triggers.get(name);
-  if (!fn) {
-    throw new Error(`Cognito trigger "${name}" was not discovered. Check that backend has a matching trigger folder.`);
-  }
-  return fn;
+  const built = requireBuilt(ctx, 'Cognito trigger');
+  return requireResource(built.triggers.get(name), {
+    kind: 'Cognito trigger',
+    name,
+    available: [...built.triggers.keys()],
+    adapterName: 'cognito',
+    hint: `create backend/triggers/${name}/handler.ts (or set triggersDir on cognitoAdapter() if your layout differs).`,
+  });
 }

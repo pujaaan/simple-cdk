@@ -8,9 +8,10 @@ import { register } from 'tsx/esm/api';
 register();
 
 const mod = await import('../dist/cli.js');
+const { presentError } = await import('../dist/error-present.js');
+
 try {
   await mod.run(process.argv.slice(2));
 } catch (err) {
-  console.error(err.stack ?? err);
-  process.exit(1);
+  process.exit(presentError(err));
 }

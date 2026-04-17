@@ -8,7 +8,7 @@ import {
   Expiration,
   Duration,
 } from 'aws-cdk-lib';
-import type { RegisterContext, WireContext } from '@simple-cdk/core';
+import { resourceNotFound, SimpleCdkError, type RegisterContext, type WireContext } from '@simple-cdk/core';
 import type { DynamoDbResource } from '@simple-cdk/dynamodb';
 import type { LambdaResource } from '@simple-cdk/lambda';
 import { generateCrudCode } from './crud-generator.js';
@@ -101,9 +101,20 @@ export function attachCrudResolvers(
   spec: NonNullable<AppSyncAdapterOptions['generateCrud']>,
 ): void {
   const ops = spec.operations ?? (['get', 'list', 'create', 'update', 'delete'] as const);
+  const explicitList = Array.isArray(spec.models) ? spec.models : undefined;
   for (const tableResource of models) {
     const ds = built.dataSources.dynamodb.get(tableResource.name);
     if (!ds) {
+      // User explicitly listed this model → hard fail; 'all' mode → warn and skip.
+      if (explicitList?.includes(tableResource.name)) {
+        throw resourceNotFound({
+          kind: 'DynamoDB data source',
+          name: tableResource.name,
+          available: [...built.dataSources.dynamodb.keys()],
+          adapterName: 'appsync',
+          hint: `"${tableResource.name}" is in generateCrud.models but no DynamoDB data source was built for it — ensure dynamoDbAdapter() is listed before appSyncAdapter() and the model was discovered.`,
+        });
+      }
       ctx.log.warn(`No DynamoDB data source for "${tableResource.name}" — skipping CRUD generation`);
       continue;
     }
@@ -187,7 +198,16 @@ function buildFunctionFromSource(built: BuiltApi, ctx: RegisterContext, spec: Re
   if (spec.source.kind === 'lambda') {
     const ds = built.dataSources.lambda.get(spec.source.lambdaName);
     if (!ds) {
-      throw new Error(`Lambda "${spec.source.lambdaName}" referenced by ${spec.typeName}.${spec.fieldName} but no data source was created.`);
+      const available = [...built.dataSources.lambda.keys()];
+      throw resourceNotFound({
+        kind: 'Lambda data source',
+        name: spec.source.lambdaName,
+        available,
+        adapterName: 'appsync',
+        hint: available.length === 0
+          ? `no Lambda data sources were built — add lambdaAdapter() to adapters[] before appSyncAdapter() so this resolver (${spec.typeName}.${spec.fieldName}) can find its lambda.`
+          : `resolver ${spec.typeName}.${spec.fieldName} references "${spec.source.lambdaName}" — rename it to match one of the built lambdas, or create backend/functions/${spec.source.lambdaName}/handler.ts.`,
+      });
     }
     return new appsync.AppsyncFunction(built.api, `Fn${spec.typeName}${spec.fieldName}`, {
       api: built.api,
@@ -199,7 +219,16 @@ function buildFunctionFromSource(built: BuiltApi, ctx: RegisterContext, spec: Re
   }
   const ds = built.dataSources.dynamodb.get(spec.source.tableName);
   if (!ds) {
-    throw new Error(`DynamoDB table "${spec.source.tableName}" referenced by ${spec.typeName}.${spec.fieldName} but no data source was created.`);
+    const available = [...built.dataSources.dynamodb.keys()];
+    throw resourceNotFound({
+      kind: 'DynamoDB data source',
+      name: spec.source.tableName,
+      available,
+      adapterName: 'appsync',
+      hint: available.length === 0
+        ? `no DynamoDB data sources were built — add dynamoDbAdapter() to adapters[] before appSyncAdapter() so this resolver (${spec.typeName}.${spec.fieldName}) can find its table.`
+        : `resolver ${spec.typeName}.${spec.fieldName} references "${spec.source.tableName}" — rename it to match one of the built tables, or add backend/models/${spec.source.tableName}.model.ts.`,
+    });
   }
   const code = readFileSync(resolve(ctx.config.rootDir, spec.source.jsFile), 'utf-8');
   return new appsync.AppsyncFunction(built.api, `Fn${spec.typeName}${spec.fieldName}`, {
@@ -221,7 +250,11 @@ function toAuthMode(mode: AuthorizationMode): appsync.AuthorizationMode {
         apiKeyConfig: { expires: Expiration.after(Duration.days(365)) },
       };
     case 'cognito':
-      throw new Error('Cognito authorization requires the cognito adapter — pass the user pool reference via wire phase.');
+      throw new SimpleCdkError({
+        code: 'USER_INPUT',
+        message: 'Cognito authorization on appSyncAdapter({ authorization }) is not supported via the kind discriminator.',
+        hint: 'use { kind: "iam" } or { kind: "api-key" } here. For Cognito-backed auth, add a small wiring adapter that calls getUserPool(ctx) and passes it into the AppSync API authorization config yourself.',
+      });
   }
 }
 

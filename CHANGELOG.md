@@ -4,6 +4,28 @@ All notable changes are documented here. The format follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+## [4.0.0] - 2026-04-16
+
+### Changed
+
+- **Error handling overhaul.** Every user-facing error now flows through a single `SimpleCdkError` class with an actionable `hint:` line and no stack trace; unexpected errors get an "internal error — please report" banner. The `cdk` subprocess's own errors pass through untouched so AWS errors are never double-wrapped. Set `SIMPLE_CDK_DEBUG=1` for full stack + cause chain.
+- **`defineConfig` now validates synchronously** — broken configs fail at `simple-cdk list` instead of deep in the engine at deploy time. All issues are collected and reported in one pass. Validates app name, stage names, region format, 12-digit accounts, `removalPolicy` enum, CloudWatch-allowed `logRetentionDays` values, duplicate adapter names, and adapters with no lifecycle hooks.
+- **Cross-adapter lookup helpers are uniform.** `getLambdaFunction`, `getDynamoTable`, `getUserPool`, `getUserPoolClient`, `getCognitoTrigger`, `getRdsInstance`, `getRdsSecret`, `getRdsVpc`, `getRdsSecurityGroup`, `getAppSyncApi` all list what *was* discovered when a lookup misses, and distinguish `RESOURCE_NOT_FOUND` / `ADAPTER_NOT_RUN` / `ADAPTER_ORDER` with targeted hints.
+- **Discovery errors are no longer swallowed.** Broken `*.model.ts`, broken function `config.ts`, function folders with no handler, and unknown Cognito trigger folders are collected into a `DiscoveryReport` surfaced by `simple-cdk list`. Fatal discovery errors block `synth` / `deploy` / `diff` / `destroy`.
+
+### Added
+
+- **`@simple-cdk/core`**: `SimpleCdkError`, `isSimpleCdkError`, `resourceNotFound`, `requireResource`, `adapterNotRun`, `adapterOrderError`, `createDiscoveryReport`, plus `DiscoveryIssue` and `DiscoveryReport` types. `DiscoveryContext` gains a `report` field that adapters use to record per-file issues.
+- **`@simple-cdk/core`**: `Engine.discover()` returns the per-adapter resources without running synth, and `Engine.report` exposes the collected issues. Used by `simple-cdk list` to run discovery once and surface both resources and issues.
+- **docs**: [Errors.md](docs/Errors.md) (error-code reference + common scenarios) and [Ordering.md](docs/Ordering.md) (wire-phase ordering invariant + rules of thumb).
+
+### Breaking
+
+- Configs that were technically invalid but slipping through (bad region format, non-CloudWatch `logRetentionDays` values, missing required fields, duplicate adapter names) now fail at `defineConfig` instead of later. Valid configs are unchanged.
+- `appSyncAdapter({ generateCrud: { models: [...] } })` with a name that isn't a discovered DynamoDB model now throws `RESOURCE_NOT_FOUND` instead of warning-and-skipping. The `'all'` path is unchanged.
+- The `{ kind: 'cognito' }` variant of `appSyncAdapter({ authorization })` (which was never functional — it threw unconditionally) now throws a clearer `USER_INPUT` error pointing users at `getUserPool(ctx)` for custom wiring.
+- Error message strings across the engine and adapters are rewritten. Anyone string-matching error text will need to switch to the `code` field on `SimpleCdkError`.
+
 ## [2.0.0] - 2026-04-16
 
 ### Added

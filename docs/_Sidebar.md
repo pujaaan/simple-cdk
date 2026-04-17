@@ -4,6 +4,10 @@
 
 **Concepts**
 - [Architecture](Architecture.md)
+- [Adapter ordering](Ordering.md)
 
 **Customize**
 - [Extending](Extending.md)
+
+**Troubleshoot**
+- [Errors](Errors.md)

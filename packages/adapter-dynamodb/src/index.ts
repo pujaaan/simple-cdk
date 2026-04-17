@@ -1,4 +1,4 @@
-import type { Adapter, WireContext } from '@simple-cdk/core';
+import { adapterOrderError, requireResource, type Adapter, type WireContext } from '@simple-cdk/core';
 import type { aws_dynamodb } from 'aws-cdk-lib';
 import { discoverModels } from './discover.js';
 import { registerTables } from './register.js';
@@ -31,7 +31,7 @@ export function dynamoDbAdapter(opts: DynamoDbAdapterOptions = {}): Adapter {
   const match = opts.match ?? DEFAULT_MATCH;
   return {
     name: 'dynamodb',
-    discover: (ctx) => discoverModels(ctx.rootDir, dir, match),
+    discover: (ctx) => discoverModels(ctx.rootDir, dir, match, ctx.report),
     register: (ctx) => registerTables(ctx, opts),
     wire: (ctx) => wireStreamTargets(ctx),
   };
@@ -39,12 +39,21 @@ export function dynamoDbAdapter(opts: DynamoDbAdapterOptions = {}): Adapter {
 
 /** Look up a registered DynamoDB table from another adapter's wire phase. */
 export function getDynamoTable(ctx: Pick<WireContext, 'resourcesOf'>, name: string): aws_dynamodb.Table {
-  const resource = ctx.resourcesOf('dynamodb').find((r) => r.name === name) as DynamoDbResource | undefined;
-  if (!resource) {
-    throw new Error(`DynamoDB table "${name}" was not discovered. Check the model file name.`);
-  }
+  const all = ctx.resourcesOf('dynamodb') as DynamoDbResource[];
+  const resource = requireResource(
+    all.find((r) => r.name === name),
+    {
+      kind: 'DynamoDB table',
+      name,
+      available: all.map((r) => r.name),
+      adapterName: 'dynamodb',
+      hint: all.length === 0
+        ? `no DynamoDB models were discovered — ensure dynamoDbAdapter() is in your adapters array and backend/models/${name}.model.ts exists.`
+        : `create backend/models/${name}.model.ts (or set dynamoDbAdapter({ dir, match }) if your layout differs).`,
+    },
+  );
   if (!resource.config.construct) {
-    throw new Error(`DynamoDB table "${name}" was not registered. Did the dynamodb adapter run?`);
+    throw adapterOrderError({ adapterName: 'dynamodb', kind: `DynamoDB table "${name}"` });
   }
   return resource.config.construct;
 }

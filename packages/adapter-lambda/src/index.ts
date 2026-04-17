@@ -1,4 +1,4 @@
-import type { Adapter, WireContext } from '@simple-cdk/core';
+import { adapterOrderError, requireResource, type Adapter, type WireContext } from '@simple-cdk/core';
 import type { aws_lambda_nodejs } from 'aws-cdk-lib';
 import { discoverLambdas } from './discover.js';
 import { registerLambdas } from './register.js';
@@ -14,7 +14,7 @@ export function lambdaAdapter(opts: LambdaAdapterOptions = {}): Adapter {
   const dir = opts.dir ?? 'backend/functions';
   return {
     name: 'lambda',
-    discover: async (ctx) => discoverLambdas(ctx.rootDir, dir),
+    discover: async (ctx) => discoverLambdas(ctx.rootDir, dir, ctx.report),
     register: (ctx) => registerLambdas(ctx, opts),
   };
 }
@@ -27,12 +27,21 @@ export function getLambdaFunction(
   ctx: Pick<WireContext, 'resourcesOf'>,
   name: string,
 ): aws_lambda_nodejs.NodejsFunction {
-  const resource = ctx.resourcesOf('lambda').find((r) => r.name === name) as LambdaResource | undefined;
-  if (!resource) {
-    throw new Error(`Lambda "${name}" was not discovered. Check the function folder name.`);
-  }
+  const all = ctx.resourcesOf('lambda') as LambdaResource[];
+  const resource = requireResource(
+    all.find((r) => r.name === name),
+    {
+      kind: 'Lambda',
+      name,
+      available: all.map((r) => r.name),
+      adapterName: 'lambda',
+      hint: all.length === 0
+        ? `no Lambdas were discovered — ensure lambdaAdapter() is in your adapters array and backend/functions/${name}/handler.ts exists.`
+        : `create backend/functions/${name}/handler.ts (or set lambdaAdapter({ dir }) if your layout differs).`,
+    },
+  );
   if (!resource.config.construct) {
-    throw new Error(`Lambda "${name}" was discovered but not yet registered. Did the lambda adapter run?`);
+    throw adapterOrderError({ adapterName: 'lambda', kind: `Lambda "${name}"` });
   }
   return resource.config.construct;
 }
