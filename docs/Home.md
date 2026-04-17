@@ -149,6 +149,45 @@ export default {
 
 Setting `streamTargets` implies `stream: 'NEW_AND_OLD_IMAGES'` unless you set `stream` explicitly.
 
+**Using a table from a Lambda.** Grants and env vars are not automatic — by design, so least-privilege stays visible. Add a tiny wiring adapter that calls `grantReadWriteData` (or a narrower grant) and injects the table name:
+
+```ts
+// simple-cdk.config.ts
+import { getLambdaFunction } from '@simple-cdk/lambda';
+import { getDynamoTable } from '@simple-cdk/dynamodb';
+
+adapters: [
+  lambdaAdapter(),
+  dynamoDbAdapter(),
+  {
+    name: 'lambda-dynamodb',
+    wire: (ctx) => {
+      const fn = getLambdaFunction(ctx, 'create-todo');
+      const table = getDynamoTable(ctx, 'todo');
+      table.grantReadWriteData(fn);                 // or grantReadData / grantWriteData
+      fn.addEnvironment('TABLE_NAME', table.tableName);
+    },
+  },
+],
+```
+
+```ts
+// backend/functions/create-todo/handler.ts
+import { DynamoDBClient, PutItemCommand } from '@aws-sdk/client-dynamodb';
+
+const ddb = new DynamoDBClient({});
+const TABLE = process.env.TABLE_NAME!;
+
+export const handler = async (event: { id: string; title: string }) => {
+  await ddb.send(new PutItemCommand({
+    TableName: TABLE,
+    Item: { id: { S: event.id }, title: { S: event.title } },
+  }));
+};
+```
+
+Table names also follow a fixed convention (`<app>-<stage>-<model>`) if you'd rather hardcode or derive them yourself, but piping `table.tableName` through `addEnvironment` avoids drift.
+
 ### `@simple-cdk/appsync`
 
 GraphQL API from a schema file. Auto-generates CRUD resolvers for any DynamoDB model and exposes a pluggable auth pipeline.

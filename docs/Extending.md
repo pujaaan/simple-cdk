@@ -1,6 +1,17 @@
 # Customizing
 
-Three ways to bend simple-cdk to your needs, in order of how much code you'll write:
+## Why adapters are modular
+
+Every AWS service simple-cdk ships is a separate adapter — `@simple-cdk/lambda`, `@simple-cdk/dynamodb`, `@simple-cdk/appsync`, `@simple-cdk/cognito`, `@simple-cdk/rds`, `@simple-cdk/outputs`. That split isn't cosmetic; it's what lets you bend the framework without forking it:
+
+- **Opt in, opt out.** Only the adapters you list in `adapters: []` run. No Cognito if you don't need Cognito. No hidden resources in your CloudFormation diff.
+- **Replace one, keep the rest.** Adapters match by `name`, so dropping in your own `{ name: 'lambda', ... }` swaps the built-in Lambda adapter while the others keep working. No framework-wide fork.
+- **Independent stacks.** Each adapter picks its own `stackName`, so resources split into separate CloudFormation stacks (`data`, `lambda`, `api`, …) and deploy/destroy independently.
+- **Tiny contract.** An adapter is a plain object with up to three hooks (`discover`, `register`, `wire`) plus a `name`. No base class, no lifecycle framework to learn.
+- **Escape hatch to raw CDK.** `ctx.stack(name)` and `ctx.app` are plain CDK — write arbitrary constructs in a wire step when the convention doesn't fit.
+- **No proprietary format.** Adapters emit standard CDK constructs. If you throw simple-cdk away, you keep the CDK underneath.
+
+The rest of this page is the *how*. Three ways to bend simple-cdk to your needs, in order of how much code you'll write:
 
 1. **Configure**: pass options to a built-in adapter
 2. **Override**: replace a built-in adapter with your own
