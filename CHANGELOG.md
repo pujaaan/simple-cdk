@@ -4,6 +4,8 @@ All notable changes are documented here. The format follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-04-16
+
 ### Added
 
 - **`@simple-cdk/rds`**: single-instance RDS adapter (Postgres or MySQL) with isolated-subnet VPC and managed Secrets Manager secret; `getRdsInstance` / `getRdsSecret` / `getRdsVpc` / `getRdsSecurityGroup` lookups. No automatic IAM or network wiring — consumers grant access explicitly to preserve the "no surprise permissions" posture.

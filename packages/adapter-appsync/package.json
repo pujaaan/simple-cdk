@@ -16,9 +16,9 @@
     "prepublishOnly": "npm run clean && npm run build"
   },
   "dependencies": {
-    "@simple-cdk/core": "1.0.0",
-    "@simple-cdk/dynamodb": "1.0.0",
-    "@simple-cdk/lambda": "1.0.0"
+    "@simple-cdk/core": "2.0.0",
+    "@simple-cdk/dynamodb": "2.0.0",
+    "@simple-cdk/lambda": "2.0.0"
   },
   "peerDependencies": {
     "aws-cdk-lib": "^2.160.0",
