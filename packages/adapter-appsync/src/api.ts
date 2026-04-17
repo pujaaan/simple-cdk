@@ -3,7 +3,6 @@ import { resolve } from 'node:path';
 import {
   aws_appsync as appsync,
   aws_dynamodb as ddb,
-  aws_iam as iam,
   aws_lambda_nodejs as lambdaNode,
   Expiration,
   Duration,
@@ -35,11 +34,9 @@ export function buildApi(ctx: WireContext, opts: AppSyncAdapterOptions): BuiltAp
   const apiName = opts.apiName ?? `${ctx.config.app}-${ctx.config.stage}-api`;
 
   const schemaPath = resolve(ctx.config.rootDir, opts.schemaFile);
-  const schema = appsync.SchemaFile.fromAsset(schemaPath);
-
   const api = new appsync.GraphqlApi(stack, opts.apiConstructId ?? 'Api', {
     name: apiName,
-    schema,
+    definition: appsync.Definition.fromFile(schemaPath),
     authorizationConfig: { defaultAuthorization: toAuthMode(ctx, opts.authorization ?? { kind: 'api-key' }) },
     xrayEnabled: ctx.config.stage !== 'prod',
   });

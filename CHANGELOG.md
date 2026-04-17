@@ -4,6 +4,17 @@ All notable changes are documented here. The format follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+## [4.2.4] - 2026-04-16
+
+### Added
+
+- **CLI formatter recognizes cdk per-stack build successes.** `<stack>: success: Built ...` lines now render **green** as a positive milestone (matching their semantic meaning); the paired `start: Building ...` progress line is hidden as pure noise. Previously both were hidden together.
+
+### Changed
+
+- **`@simple-cdk/appsync`** now uses `appsync.Definition.fromFile(schemaPath)` instead of the deprecated `GraphqlApiProps#schema + SchemaFile.fromAsset` pair — silences the `aws-cdk-lib.aws_appsync.GraphqlApiProps#schema is deprecated` warning during synth.
+- **CLI formatter hides the unactionable `aws-cdk-lib.aws_iam.GrantOnPrincipalOptions#scope is deprecated` warning and its two standard continuation lines.** This warning is emitted by aws-cdk-lib's own internal code (Cognito's `addPermission` call still passes the deprecated `scope` field) — there's nothing consumers can do about it, so hiding it spares every Cognito-using deploy from chatter the user can't act on. Other deprecations still render yellow.
+
 ## [4.2.3] - 2026-04-16
 
 ### Fixed

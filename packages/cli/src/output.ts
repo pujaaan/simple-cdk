@@ -120,7 +120,7 @@ function colorStatus(status: string): string {
   return status;
 }
 
-type Classification = 'hide' | 'warn' | 'error';
+type Classification = 'hide' | 'warn' | 'error' | 'success';
 
 // Classify a line by CONTENT, not by source stream. Unclassified lines
 // fall through to dim — cdk + esbuild + npm all emit progress on stderr
@@ -141,15 +141,24 @@ function classify(line: string): Classification | null {
   if (/^found \d+ vulnerabilit/.test(line)) return 'hide';
   if (/^\d+ package(s)? (are|is) looking for funding/.test(line)) return 'hide';
   if (/^\s*run `npm fund`/.test(line)) return 'hide';
-  // cdk per-stack build progress — one start + one success per stack, pure chatter.
-  if (/^\S+:\s+(start|success):\s+(Building|Built)\b/.test(line)) return 'hide';
+  // cdk per-stack build progress — hide the start line (noise), color the
+  // success line green so the user still sees a positive milestone per stack.
+  if (/^\S+:\s+start:\s+Building\b/.test(line)) return 'hide';
+  if (/^\S+:\s+success:\s+Built\b/.test(line)) return 'success';
+
+  // Known unactionable CDK-internal deprecations — aws-cdk-lib itself still
+  // passes the deprecated `scope` field into its own `addPermission` calls
+  // when wiring Cognito triggers. Nothing the consumer can fix; hide the
+  // [WARNING] line and its two standard continuations so we don't alarm on
+  // chatter the user can't act on.
+  if (/\[WARNING\].*GrantOnPrincipalOptions#scope/.test(line)) return 'hide';
+  if (/^\s*The scope argument is currently unused\.?$/.test(line)) return 'hide';
+  if (/^\s*This API will be removed in the next major release\.?$/.test(line)) return 'hide';
 
   // Warnings — deprecations + advisory chatter, everything yellow.
   if (/\[WARNING\]/.test(line)) return 'warn';
   if (/^\s*\[Info at\s/.test(line)) return 'warn';
   if (/deprecated\./i.test(line)) return 'warn';
-  if (/^\s*The scope argument/.test(line)) return 'warn';
-  if (/^\s*This API will be removed/.test(line)) return 'warn';
   if (/^npm (warn|notice)\b/i.test(line)) return 'warn';
 
   // Errors — explicit markers only. Keep this list tight; unclassified
@@ -167,6 +176,10 @@ function classify(line: string): Classification | null {
 function emitClassified(line: string, _source: StreamSource): void {
   const c = classify(line);
   if (c === 'hide') return;
+  if (c === 'success') {
+    console.log(green(line));
+    return;
+  }
   if (c === 'warn') {
     process.stderr.write(yellow(line) + '\n');
     return;
