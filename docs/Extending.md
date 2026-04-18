@@ -2,13 +2,13 @@
 
 ## Why adapters are modular
 
-Every AWS service simple-cdk ships is a separate adapter — `@simple-cdk/lambda`, `@simple-cdk/dynamodb`, `@simple-cdk/appsync`, `@simple-cdk/cognito`, `@simple-cdk/rds`, `@simple-cdk/outputs`. That split isn't cosmetic; it's what lets you bend the framework without forking it:
+Every AWS service simple-cdk ships is a separate adapter (`@simple-cdk/lambda`, `@simple-cdk/dynamodb`, `@simple-cdk/appsync`, `@simple-cdk/cognito`, `@simple-cdk/rds`, `@simple-cdk/outputs`). That split isn't cosmetic; it's what lets you bend the framework without forking it:
 
 - **Opt in, opt out.** Only the adapters you list in `adapters: []` run. No Cognito if you don't need Cognito. No hidden resources in your CloudFormation diff.
 - **Replace one, keep the rest.** Adapters match by `name`, so dropping in your own `{ name: 'lambda', ... }` swaps the built-in Lambda adapter while the others keep working. No framework-wide fork.
 - **Independent stacks.** Each adapter picks its own `stackName`, so resources split into separate CloudFormation stacks (`data`, `lambda`, `api`, …) and deploy/destroy independently.
 - **Tiny contract.** An adapter is a plain object with up to three hooks (`discover`, `register`, `wire`) plus a `name`. No base class, no lifecycle framework to learn.
-- **Escape hatch to raw CDK.** `ctx.stack(name)` and `ctx.app` are plain CDK — write arbitrary constructs in a wire step when the convention doesn't fit.
+- **Escape hatch to raw CDK.** `ctx.stack(name)` and `ctx.app` are plain CDK. Write arbitrary constructs in a wire step when the convention doesn't fit.
 - **No proprietary format.** Adapters emit standard CDK constructs. If you throw simple-cdk away, you keep the CDK underneath.
 
 The rest of this page is the *how*. Three ways to bend simple-cdk to your needs, in order of how much code you'll write:
@@ -83,7 +83,7 @@ adapters: [
 ],
 ```
 
-Pass `{ root: 'src/server' }` to relocate everything under a different root. `paths.apiDir` is also exposed as a conventional spot for GraphQL schema + resolver source files. The helper is purely opt-in — the flat defaults still work.
+Pass `{ root: 'src/server' }` to relocate everything under a different root. `paths.apiDir` is also exposed as a conventional spot for GraphQL schema + resolver source files. The helper is purely opt-in; the flat defaults still work.
 
 ---
 
@@ -339,8 +339,53 @@ The adapter contract is small enough that going from "I'll use the built-in" to 
 
 ---
 
+## Composing custom adapters: a real-world shape
+
+The minimal config in [Home](./Home.md) lists three built-in adapters and that's the whole app. Real production apps tend to mix built-ins, custom adapters, and direct calls to lower-level building blocks like `buildApi` from `@simple-cdk/appsync`. The shape stays the same (`defineConfig({ adapters: [...] })`), but each entry can be as plain or as bespoke as the project needs.
+
+This is the adapter list from a production multi-tenant healthcare backend. Names are project-specific; the pattern is not:
+
+```ts
+// simple-cdk.config.ts
+adapters: [
+  myDataAdapter(),                    // custom: domain-shaped DynamoDB models with tenant-isolation metadata
+  cognitoAdapter({                    // built-in: user pool + 4 triggers + MFA + password policy
+    triggersDir: 'backend/auth/triggers',
+    mfa: 'optional',
+    passwordPolicy: { minLength: 12, requireSymbols: true /* ... */ },
+  }),
+  myAuthExtrasAdapter(),              // custom: identity pool, SES, pre-token-generation grants
+  myStorageAdapter(),                 // custom: S3 buckets (logos, signatures, attachments)
+  myFunctionsAdapter(),               // custom: like @simple-cdk/lambda but per-domain config metadata
+  myWarehouseAdapter(),               // custom: RDS + VPC + DynamoDB stream consumer + EventBridge schedules
+  myApiAdapter(),                     // custom: uses buildApi() directly to drop resolvers into nested stacks
+  outputsAdapter({                    // built-in: SSM parameter for frontend config
+    parameterName: `/my-app/${stage}/aws-config`,
+    collect: (ctx) => ({
+      region: ctx.config.stageConfig.region,
+      userPoolId: getUserPool(ctx).userPoolId,
+      userPoolClientId: getUserPoolClient(ctx).userPoolClientId,
+      // ... plus identity pool id, AppSync URL, bucket names from custom adapters
+    }),
+  }),
+],
+```
+
+A few things worth noticing:
+
+- **Built-ins and customs are listed exactly the same way.** The engine doesn't care which is which.
+- **Customs handle the parts the built-ins don't cover:** Cognito identity pools, S3 buckets, RDS in a VPC built dynamically, AppSync resolvers split across nested stacks for the 500-resource CloudFormation limit.
+- **The custom API adapter uses `buildApi` directly** instead of `appSyncAdapter()`. `buildApi`, `attachCrudResolvers`, and `attachManualResolvers` are exported from `@simple-cdk/appsync` for exactly this case: when the high-level adapter doesn't fit, drop one level deeper but keep the CRUD pipeline.
+- **`outputsAdapter` is the seam between custom and built-in.** It pulls the user pool from `@simple-cdk/cognito`, the API from a custom adapter, and bucket names from another custom adapter, then bundles them into one SSM parameter the frontend reads at boot.
+- **Stack ids are pinned** (`stackId: \`my-app-ApiStack-${stage}\``) so the project can adopt this shape over an existing CloudFormation deployment without recreating data-bearing resources. See [Adopting](./Adopting.md).
+
+The point: there is no "production mode" of simple-cdk. The same engine and the same adapter contract handle the minimal example and the multi-adapter prod shape. You opt into complexity when you need it, and only for the parts that need it.
+
+---
+
 ## See also
 
 - [Home](./Home.md) for the full per-adapter reference
 - [Architecture](./Architecture.md) for how the engine works under the hood
+- [Comparison](./Comparison.md) for pros/cons and how simple-cdk sits next to raw CDK, Amplify, and SST
 - [Getting Started](./Getting-Started.md) for installation and your first deploy

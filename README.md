@@ -2,11 +2,19 @@
 
 Build on AWS without being an AWS expert.
 
-simple-cdk is a thin layer on top of [AWS CDK](https://aws.amazon.com/cdk/). You describe your app once in a single config file, drop your code into a few conventional folders, and the built-in **adapters** turn it into Lambda functions, DynamoDB tables, an AppSync GraphQL API, a Cognito user pool, an RDS database, and a bundled outputs parameter for frontends. Every adapter is optional, every adapter is replaceable, and you can drop down to raw CDK any time.
+simple-cdk is a thin convention layer on top of [AWS CDK](https://aws.amazon.com/cdk/). You describe your app in one `simple-cdk.config.ts`, drop code into a few conventional folders, and the built-in **adapters** turn it into Lambda functions, DynamoDB tables, an AppSync GraphQL API, a Cognito user pool, an RDS database, and a bundled outputs parameter for frontends. Every adapter is optional, every adapter is replaceable, and raw CDK is always one line away.
+
+## What simple-cdk is, and isn't
+
+It is **a thin runtime over CDK** that scans your folders, runs adapters in a deterministic three-phase pipeline (`discover → register → wire`), and emits real CDK constructs.
+
+It is **not** a framework, not a deploy service, not an opinionated runtime. There is no proprietary format, no daemon, no console, no telemetry. The output is plain CloudFormation. You can delete `simple-cdk.config.ts`, replace it with a hand-written CDK app, and keep deploying. Adapters are not there to add boilerplate; they exist to give you a predictable folder layout (or your own, if you write one) without rewriting the same Lambda/DynamoDB/AppSync wiring in every project.
+
+simple-cdk and raw CDK compose in the same project. `ctx.stack(name)` returns a real `cdk.Stack`, so you can attach any construct from `aws-cdk-lib` next to anything an adapter created. You can also embed simple-cdk inside an existing CDK app: `Engine.synth({ cdkApp })` accepts a pre-built `cdk.App`, and every adapter takes an optional `stack:` to register its constructs into a `Stack` your hand-written code already owns. See [docs/Adopting.md](./docs/Adopting.md#embedding-in-an-existing-cdk-app).
 
 ## Why simple-cdk?
 
-simple-cdk is for teams that want to ship AWS serverless backends — Lambda, DynamoDB, AppSync (GraphQL), Cognito — without writing a mountain of CDK boilerplate. It's **convention-over-configuration for AWS CDK**, borrowing the scaffold-and-go simplicity of tools like [AWS Amplify](https://aws.amazon.com/amplify/) while staying on plain CDK so you keep an escape hatch into raw constructs.
+For teams shipping AWS serverless backends (Lambda, DynamoDB, AppSync for GraphQL, Cognito) without writing a mountain of CDK boilerplate. **Convention-over-configuration for AWS CDK**, borrowing the scaffold-and-go simplicity of [AWS Amplify](https://aws.amazon.com/amplify/) while staying on plain CDK so you keep an escape hatch into raw constructs.
 
 **Reach for simple-cdk when you want to:**
 
@@ -16,7 +24,9 @@ simple-cdk is for teams that want to ship AWS serverless backends — Lambda, Dy
 - Auto-generate CRUD resolvers for DynamoDB-backed AppSync APIs
 - Keep Amplify-style scaffolding ergonomics on projects where Amplify's restrictions won't fit
 
-**Prefer plain CDK or Amplify when:** you have non-serverless workloads (ECS/EKS/EC2-heavy), deeply custom multi-stack topologies, an existing CDK codebase you're happy with, or you want a fully managed full-stack framework that hosts frontend + backend together.
+**Prefer plain CDK or Amplify when:** you have non-serverless workloads (ECS/EKS/EC2-heavy), deeply custom multi-stack topologies, or you want a fully managed full-stack framework that hosts frontend + backend together. (Already on CDK and happy with it? You don't have to choose. Embed simple-cdk into a slice of your existing app.)
+
+For a deeper side-by-side against raw CDK, Amplify, and SST, see [docs/Comparison.md](./docs/Comparison.md).
 
 ## Quick start
 
@@ -214,7 +224,7 @@ A single RDS instance (Postgres or MySQL) with a VPC (isolated subnets, no NAT g
 import {rdsAdapter, getRdsInstance} from '@simple-cdk/rds'
 
 rdsAdapter({
-  engine: 'postgres',           // or 'mysql' — required
+  engine: 'postgres',           // or 'mysql'. Required
   instanceClass: 't4g.micro',   // default
   allocatedStorageGb: 20,       // default
   multiAz: false,               // default
@@ -223,7 +233,7 @@ rdsAdapter({
 })
 ```
 
-No automatic IAM or network wiring — grant Lambdas access explicitly in a wiring adapter (`db.connections.allowDefaultPortFrom(fn); db.secret!.grantRead(fn)`). Lookups: `getRdsInstance`, `getRdsSecret`, `getRdsVpc`, `getRdsSecurityGroup`.
+No automatic IAM or network wiring. Grant Lambdas access explicitly in a wiring adapter (`db.connections.allowDefaultPortFrom(fn); db.secret!.grantRead(fn)`). Lookups: `getRdsInstance`, `getRdsSecret`, `getRdsVpc`, `getRdsSecurityGroup`.
 
 ### `@simple-cdk/outputs`
 
@@ -241,7 +251,7 @@ outputsAdapter({
     region: ctx.config.stageConfig.region,
   }),
   // parameterName defaults to `/<app>/<stage>/outputs`
-  // cfnOutputs: true (default) — also emit each key as a CfnOutput
+  // cfnOutputs: true (default). Also emits each key as a CfnOutput
 })
 ```
 
@@ -267,7 +277,11 @@ simple-cdk deploy --stage prod -- --require-approval never --concurrency 4
 
 ## Customizing
 
-Adapters are plain objects matching the [`Adapter`](./packages/core/src/types.ts) interface. The engine doesn't care where they come from. Built-in or yours, they're treated the same.
+Adapters are plain objects matching the [`Adapter`](./packages/core/src/types.ts) interface. The engine doesn't care where they come from. Built-in or yours, they're treated the same, and they all follow the same shape: `name`, plus up to three optional hooks (`discover`, `register`, `wire`).
+
+**What adapters are for:** turning `backend/functions/foo/handler.ts` into a `lambda.Function` without you writing one, exposing the resulting CDK construct so you can grab and tweak it (`getLambdaFunction(ctx, 'foo')`), and giving you a single predictable place to plug in cross-resource wiring.
+
+**What adapters are not for:** generating boilerplate code into your repo, hiding CDK behind a wrapper, or forcing a folder layout. The folder is just an `opts.dir` setting. Point it anywhere, swap the convention, or write your own `discover` that reads from somewhere else entirely.
 
 ### Override a built-in adapter
 
@@ -352,11 +366,13 @@ All three are optional. See [docs/Extending.md](./docs/Extending.md) for a compl
 
 - [Getting Started](./docs/Getting-Started.md) for install, configure, deploy
 - [Architecture](./docs/Architecture.md) for engine, adapters, lifecycle
-- [Extending](./docs/Extending.md) to override or write adapters
+- [Extending](./docs/Extending.md) to override or write adapters (with a real-world prod-shaped example)
+- [Comparison](./docs/Comparison.md) for pros/cons and how simple-cdk sits next to raw CDK, Amplify, and SST
+- [Adopting](./docs/Adopting.md) for moving an existing CloudFormation stack under simple-cdk
 
 ## Status
 
-Pre-1.0. APIs may change. Issues and PRs welcome at [github.com/pujaaan/simple-cdk](https://github.com/pujaaan/simple-cdk).
+Stable, in production use. The package follows [SemVer](https://semver.org/): minor bumps add features, patch bumps fix bugs, breaking changes go in major bumps. Issues and PRs welcome at [github.com/pujaaan/simple-cdk](https://github.com/pujaaan/simple-cdk).
 
 ## License
 

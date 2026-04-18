@@ -2,7 +2,9 @@
 
 > Build on AWS without being an AWS expert.
 
-simple-cdk is a thin layer on top of [AWS CDK](https://aws.amazon.com/cdk/). You describe your app once in a single config file, drop your code into a few conventional folders, and the built-in **adapters** turn it into Lambda functions, DynamoDB tables, an AppSync GraphQL API, a Cognito user pool, an RDS database, and a bundled outputs parameter for frontends. Every adapter is optional, every adapter is replaceable, and you can drop down to raw CDK any time.
+simple-cdk is a thin convention layer on top of [AWS CDK](https://aws.amazon.com/cdk/). You describe your app in one `simple-cdk.config.ts`, drop code into a few conventional folders, and the built-in **adapters** turn it into Lambda functions, DynamoDB tables, an AppSync GraphQL API, a Cognito user pool, an RDS database, and a bundled outputs parameter for frontends. Every adapter is optional, every adapter is replaceable, and raw CDK is always one line away.
+
+It is **not** a framework, not a deploy service, and not an opinionated runtime. There's no proprietary format, no daemon, no console. The output is plain CloudFormation. Delete `simple-cdk.config.ts`, swap in a hand-written CDK app, and keep deploying. simple-cdk and raw CDK compose in the same project: `ctx.stack(name)` returns a real `cdk.Stack`, and you can attach any construct from `aws-cdk-lib` next to anything an adapter created. You can also embed simple-cdk inside an existing CDK app; see [Adopting → Embedding in an existing CDK app](Adopting.md#embedding-in-an-existing-cdk-app).
 
 ---
 
@@ -11,6 +13,7 @@ simple-cdk is a thin layer on top of [AWS CDK](https://aws.amazon.com/cdk/). You
 | | |
 |---|---|
 | **New?** | [Getting Started](Getting-Started.md) |
+| **Choosing a tool?** | [Comparison: vs raw CDK, Amplify, SST](Comparison.md) |
 | **Want the big picture?** | [Architecture](Architecture.md) |
 | **Ready to customize?** | [Extending](Extending.md) |
 | **Adopting an existing stack?** | [Adopting an existing deployment](Adopting.md) |
@@ -151,7 +154,7 @@ export default {
 
 Setting `streamTargets` implies `stream: 'NEW_AND_OLD_IMAGES'` unless you set `stream` explicitly.
 
-**Using a table from a Lambda.** Grants and env vars are not automatic — by design, so least-privilege stays visible. Add a tiny wiring adapter that calls `grantReadWriteData` (or a narrower grant) and injects the table name:
+**Using a table from a Lambda.** Grants and env vars are not automatic. That's by design, so least-privilege stays visible. Add a tiny wiring adapter that calls `grantReadWriteData` (or a narrower grant) and injects the table name:
 
 ```ts
 // simple-cdk.config.ts
@@ -247,11 +250,11 @@ A single RDS instance (Postgres or MySQL) with a VPC (isolated subnets, no NAT g
 import { rdsAdapter, getRdsInstance } from '@simple-cdk/rds';
 
 rdsAdapter({
-  engine: 'postgres',                     // or 'mysql' — required
+  engine: 'postgres',                     // or 'mysql'. Required
   instanceClass: 't4g.micro',             // default
   allocatedStorageGb: 20,                 // default
   multiAz: false,                         // default
-  publiclyAccessible: false,              // default — isolated subnets
+  publiclyAccessible: false,              // default (isolated subnets)
   stackName: 'data',                      // default
   // engineVersion, databaseName, vpc, securityGroup, backupRetentionDays,
   // deletionProtection, secretName, instanceConstructId, stackId, stack
@@ -294,11 +297,11 @@ outputsAdapter({
     };
   },
   // parameterName defaults to `/<app>/<stage>/outputs`
-  // cfnOutputs: true (default) — also emit each key as a CfnOutput
+  // cfnOutputs: true (default). Also emits each key as a CfnOutput
 })
 ```
 
-Token values from CDK (e.g. `pool.userPoolId`) are fine — they resolve at deploy time.
+Token values from CDK (e.g. `pool.userPoolId`) are fine; they resolve at deploy time.
 
 ---
 
@@ -324,7 +327,7 @@ simple-cdk deploy --stage prod -- --require-approval never --concurrency 4
 
 ## Customizing
 
-Adapters are plain objects. Replace any built-in by passing your own. Write new ones for AWS services we don't ship. See [Extending](Extending.md) for the full walkthrough including filesystem discovery, cross-adapter wiring, and the AppSync auth pipeline.
+Adapters are plain objects. Every built-in follows the same shape (a `name` plus up to three optional hooks: `discover`, `register`, `wire`), so there's nothing new to learn per service. Replace any built-in by passing your own object with the same name; write a new one for an AWS service we don't ship. See [Extending](Extending.md) for the full walkthrough including filesystem discovery, cross-adapter wiring, the AppSync auth pipeline, and a real-world prod-shaped composition.
 
 ```ts
 // quickest custom adapter: three optional hooks and a name
@@ -336,8 +339,10 @@ const myAdapter: Adapter = {
 };
 ```
 
+Adapters are not there to add boilerplate. They're there to give you a predictable folder layout (or your own, if you write one) without rewriting the same Lambda/DynamoDB/AppSync wiring in every project. The constructs they produce are real CDK constructs, returned via lookup helpers (`getLambdaFunction`, `getDynamoTable`, `getUserPool`, …) so you can grab and tweak them in a `wire` step.
+
 ---
 
 ## Status
 
-Pre-1.0. APIs may change.
+Stable, in production use. Follows [SemVer](https://semver.org/): minors add features, patches fix bugs, breaking changes go in major bumps.

@@ -22,4 +22,4 @@ import type { Adapter, AppConfig, Resource, RegisterContext, WireContext } from 
 
 ## Status
 
-Pre-1.0. APIs may change. Full docs at the [main repo](https://github.com/pujaaan/simple-cdk).
+Stable, in production use. Follows [SemVer](https://semver.org/). Full docs at the [main repo](https://github.com/pujaaan/simple-cdk).

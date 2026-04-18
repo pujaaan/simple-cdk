@@ -1,0 +1,28 @@
+# simple-cdk
+
+> A thin convention layer on top of AWS CDK. simple-cdk scans conventional folders, runs adapters in a deterministic three-phase pipeline (`discover → register → wire`), and emits real CDK constructs. The output is plain CloudFormation. It is not a framework, not a deploy service, and not an opinionated runtime; it composes with raw CDK in the same project.
+
+simple-cdk is for shipping AWS serverless backends (Lambda, DynamoDB, AppSync for GraphQL, Cognito, RDS) without rewriting the same CDK wiring in every project. Each built-in adapter is optional and replaceable; custom adapters use the same three-hook contract. You can also embed simple-cdk inside an existing CDK app via `Engine.synth({ cdkApp })` and per-adapter `stack:` options, so adoption is incremental in either direction.
+
+## Docs
+
+- [README](https://github.com/pujaaan/simple-cdk/blob/main/README.md): Overview, quick start, what simple-cdk is and isn't, full per-adapter reference, customization guide
+- [Comparison](https://github.com/pujaaan/simple-cdk/blob/main/docs/Comparison.md): Pros, cons, when to use, when not to, side-by-side against raw CDK, AWS Amplify (Gen 2), and SST
+- [Architecture](https://github.com/pujaaan/simple-cdk/blob/main/docs/Architecture.md): Engine internals, lifecycle (discover → register → wire), adapter contract, contexts, stack management, configuration shape, design principles
+- [Getting Started](https://github.com/pujaaan/simple-cdk/blob/main/docs/Getting-Started.md): Prerequisites, install, first config, first deploy
+- [Extending](https://github.com/pujaaan/simple-cdk/blob/main/docs/Extending.md): Configure built-in adapters, override them, write a custom adapter from scratch (with a complete SQS adapter example), AppSync auth pipeline, real-world prod-shaped multi-adapter composition
+- [Adopting](https://github.com/pujaaan/simple-cdk/blob/main/docs/Adopting.md): Two scenarios. (1) Adopt an existing CloudFormation stack without delete-and-recreate (override catalog, logical-ID matching, examples, caveats). (2) Embed simple-cdk inside an existing CDK app (`Engine.synth({ cdkApp })`, per-adapter `stack:` option)
+- [Errors](https://github.com/pujaaan/simple-cdk/blob/main/docs/Errors.md): Error-code reference, common scenarios, debugging tips
+- [Adapter ordering](https://github.com/pujaaan/simple-cdk/blob/main/docs/Ordering.md): Wire-phase ordering invariant, rules of thumb for when adapter order matters
+
+## Examples
+
+- [examples/01-minimal](https://github.com/pujaaan/simple-cdk/tree/main/examples/01-minimal): Lambda + AppSync, single config file
+- [examples/02-with-models](https://github.com/pujaaan/simple-cdk/tree/main/examples/02-with-models): Adds DynamoDB models with auto-generated CRUD resolvers
+
+## Optional
+
+- [CHANGELOG](https://github.com/pujaaan/simple-cdk/blob/main/CHANGELOG.md): Version history (current: 4.x), feature additions, breaking changes
+- [Source on GitHub](https://github.com/pujaaan/simple-cdk): Issues, discussions, PRs
+- [npm: simple-cdk](https://www.npmjs.com/package/simple-cdk): CLI entry point
+- [npm: @simple-cdk/core](https://www.npmjs.com/package/@simple-cdk/core): Engine and types, required by all adapters
