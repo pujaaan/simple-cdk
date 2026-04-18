@@ -154,27 +154,54 @@ export default {
 
 Setting `streamTargets` implies `stream: 'NEW_AND_OLD_IMAGES'` unless you set `stream` explicitly.
 
-**Using a table from a Lambda.** Grants and env vars are not automatic. That's by design, so least-privilege stays visible. Add a tiny wiring adapter that calls `grantReadWriteData` (or a narrower grant) and injects the table name:
+**Using a table from a Lambda.** End-to-end: define the table, declare the lambda, wire them. Grants and env vars are not automatic; that's by design, so least-privilege stays visible in your config rather than buried inside adapter internals. See [Wiring](./Wiring.md) for the full recipe with more variations.
+
+**Step 1, define the table.** Drop a model file in `backend/models/`. The DynamoDB adapter discovers it and provisions a real `aws-cdk-lib/aws-dynamodb.Table` in AWS named `<app>-<stage>-<stem>` (e.g. `my-app-dev-todo`):
+
+```ts
+// backend/models/todo.model.ts
+import type { DynamoDbModelConfig } from '@simple-cdk/dynamodb';
+
+export default {
+  pk: { name: 'id' },
+} satisfies DynamoDbModelConfig;
+```
+
+**Step 2, declare adapters and wire them.** `dynamoDbAdapter()` provisions the table. `lambdaAdapter()` provisions functions discovered under `backend/functions/`. The wiring adapter at the bottom grants IAM and injects the table name:
 
 ```ts
 // simple-cdk.config.ts
-import { getLambdaFunction } from '@simple-cdk/lambda';
-import { getDynamoTable } from '@simple-cdk/dynamodb';
+import { defineConfig } from '@simple-cdk/core';
+import { lambdaAdapter, getLambdaFunction } from '@simple-cdk/lambda';
+import { dynamoDbAdapter, getDynamoTable } from '@simple-cdk/dynamodb';
 
-adapters: [
-  lambdaAdapter(),
-  dynamoDbAdapter(),
-  {
-    name: 'lambda-dynamodb',
-    wire: (ctx) => {
-      const fn = getLambdaFunction(ctx, 'create-todo');
-      const table = getDynamoTable(ctx, 'todo');
-      table.grantReadWriteData(fn);                 // or grantReadData / grantWriteData
-      fn.addEnvironment('TABLE_NAME', table.tableName);
+export default defineConfig({
+  app: 'my-app',
+  defaultStage: 'dev',
+  stages: { dev: { region: 'us-east-1', removalPolicy: 'destroy' } },
+  adapters: [
+    dynamoDbAdapter(),                              // provisions the todo table
+    lambdaAdapter(),                                // provisions create-todo, list-todos, ...
+    {
+      name: 'lambda-dynamodb',
+      wire: (ctx) => {
+        const table  = getDynamoTable(ctx, 'todo'); // real aws-cdk-lib Table
+        const writer = getLambdaFunction(ctx, 'create-todo');
+        const reader = getLambdaFunction(ctx, 'list-todos');
+
+        table.grantWriteData(writer);               // PutItem, UpdateItem, DeleteItem
+        table.grantReadData(reader);                // GetItem, Query, Scan
+        // grantReadWriteData(fn) when one function needs both
+
+        writer.addEnvironment('TABLE_NAME', table.tableName);
+        reader.addEnvironment('TABLE_NAME', table.tableName);
+      },
     },
-  },
-],
+  ],
+});
 ```
+
+**Step 3, read the env var from the handler.**
 
 ```ts
 // backend/functions/create-todo/handler.ts
@@ -191,7 +218,11 @@ export const handler = async (event: { id: string; title: string }) => {
 };
 ```
 
-Table names also follow a fixed convention (`<app>-<stage>-<model>`) if you'd rather hardcode or derive them yourself, but piping `table.tableName` through `addEnvironment` avoids drift.
+Three things worth knowing:
+
+- `getDynamoTable(ctx, 'todo')` returns the real `dynamodb.Table` CDK construct. Every CDK method on it works (`grantReadData`, `grantStreamRead`, `addGlobalSecondaryIndex`, etc.).
+- The wiring adapter only needs a `wire` hook. No `discover` or `register` because it doesn't own any resources of its own; it just connects two other adapters' resources after they've been registered.
+- Table names follow `<app>-<stage>-<model>`, so you can hardcode `my-app-dev-todo` if you prefer. Piping `table.tableName` through `addEnvironment` avoids drift when renaming stages or models.
 
 ### `@simple-cdk/appsync`
 

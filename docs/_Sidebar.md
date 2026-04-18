@@ -9,6 +9,7 @@
 
 **Customize**
 - [Extending](Extending.md)
+- [Wire a DynamoDB table to a Lambda](Wiring.md)
 - [Adopting an existing deployment](Adopting.md)
 
 **Troubleshoot**

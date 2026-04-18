@@ -11,13 +11,14 @@ Every AWS service simple-cdk ships is a separate adapter (`@simple-cdk/lambda`, 
 - **Escape hatch to raw CDK.** `ctx.stack(name)` and `ctx.app` are plain CDK. Write arbitrary constructs in a wire step when the convention doesn't fit.
 - **No proprietary format.** Adapters emit standard CDK constructs. If you throw simple-cdk away, you keep the CDK underneath.
 
-The rest of this page is the *how*. Three ways to bend simple-cdk to your needs, in order of how much code you'll write:
+The rest of this page is the *how*. Four ways to bend simple-cdk to your needs, in order of how much code you'll write:
 
 1. **Configure**: pass options to a built-in adapter
 2. **Override**: replace a built-in adapter with your own
-3. **Add**: write a new adapter for something we don't ship
+3. **Escape hatch**: drop to raw CDK for one-off resources
+4. **Add**: write a new adapter for something we don't ship
 
-All three coexist. You can configure most adapters, override one, and add a new one in the same project.
+They coexist freely. You can configure most adapters, override one, drop an S3 bucket inline, and add a new adapter in the same project.
 
 ---
 
@@ -146,7 +147,99 @@ The engine matches adapters by `name` for the wire-phase lookup (`resourcesOf('l
 
 ---
 
-## 3. Write a new adapter
+## 3. Escape hatch: raw CDK next to adapters
+
+When the convention doesn't fit, drop to raw CDK. There's no mode to flip; every `RegisterContext` and `WireContext` hands you the real `App` and real `Stack` instances, and every lookup helper (`getLambdaFunction`, `getDynamoTable`, `getUserPool`, `getRdsInstance`) returns the real CDK construct an adapter registered. Three common shapes:
+
+### Attach a raw construct in a new stack
+
+When you need an AWS resource that no built-in adapter covers (S3, SNS, EventBridge, Step Functions) and you don't want the overhead of writing a full adapter, register it inline with a tiny one-hook adapter:
+
+```ts
+import { defineConfig } from '@simple-cdk/core';
+import { aws_s3 as s3, Duration, RemovalPolicy } from 'aws-cdk-lib';
+
+export default defineConfig({
+  app: 'my-app',
+  stages: { dev: { region: 'us-east-1', removalPolicy: 'destroy' } },
+  adapters: [
+    lambdaAdapter(),
+    {
+      name: 'uploads-bucket',
+      register: (ctx) => {
+        const stack = ctx.stack('storage');          // new CF stack, namespaced per stage
+        new s3.Bucket(stack, 'Uploads', {
+          bucketName: `${ctx.config.app}-${ctx.config.stage}-uploads`,
+          lifecycleRules: [{ expiration: Duration.days(30) }],
+          removalPolicy: ctx.config.stageConfig.removalPolicy === 'destroy'
+            ? RemovalPolicy.DESTROY
+            : RemovalPolicy.RETAIN,
+          autoDeleteObjects: ctx.config.stageConfig.removalPolicy === 'destroy',
+        });
+      },
+    },
+  ],
+});
+```
+
+`ctx.stack(name)` returns a plain `cdk.Stack`. `new s3.Bucket(stack, ...)` is the same call you'd write in a hand-written CDK app.
+
+### Define your own `Construct` class
+
+For a reusable shape, write a normal CDK construct and instantiate it from a wire-phase adapter. Nothing simple-cdk specific:
+
+```ts
+import { Construct } from 'constructs';
+import { aws_sns as sns, aws_sns_subscriptions as subs, aws_sqs as sqs } from 'aws-cdk-lib';
+
+export class FanoutTopic extends Construct {
+  readonly topic: sns.Topic;
+  constructor(scope: Construct, id: string, props: { queueCount: number }) {
+    super(scope, id);
+    this.topic = new sns.Topic(this, 'Topic');
+    for (let i = 0; i < props.queueCount; i++) {
+      const q = new sqs.Queue(this, `Q${i}`);
+      this.topic.addSubscription(new subs.SqsSubscription(q));
+    }
+  }
+}
+
+// wire it up alongside adapter-managed resources
+{
+  name: 'order-events',
+  wire: (ctx) => {
+    const stack = ctx.stack('events');
+    const fanout = new FanoutTopic(stack, 'OrderEvents', { queueCount: 3 });
+    const publisher = getLambdaFunction(ctx, 'place-order');
+    fanout.topic.grantPublish(publisher);
+    publisher.addEnvironment('ORDER_TOPIC_ARN', fanout.topic.topicArn);
+  },
+}
+```
+
+### Mutate an adapter's construct
+
+Every adapter-owned construct is exposed via a lookup helper. Reach in, tweak, drop to the L1 `Cfn*` layer if you need a property CDK doesn't surface:
+
+```ts
+import { getDynamoTable } from '@simple-cdk/dynamodb';
+import { aws_dynamodb as dynamodb } from 'aws-cdk-lib';
+
+{
+  name: 'table-tuning',
+  wire: (ctx) => {
+    const table = getDynamoTable(ctx, 'todo');
+    const cfn = table.node.defaultChild as dynamodb.CfnTable;
+    cfn.addPropertyOverride('ContributorInsightsSpecification.Enabled', true);
+  },
+}
+```
+
+When do you want an escape hatch over writing a full adapter? When the resource is one-off (a single bucket, one EventBridge rule), when you're prototyping, or when you need a property the built-in adapter doesn't expose. Graduate to a full adapter (next section) when the pattern repeats across functions or projects.
+
+---
+
+## 4. Write a new adapter
 
 Same shape as overriding, just a new `name`. Example: an SQS adapter that auto-discovers queue definitions from disk.
 

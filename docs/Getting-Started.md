@@ -133,6 +133,73 @@ Stages are defined in your config. They control region, account, removal policy,
 
 Each stage gets its own CloudFormation stacks, scoped as `<app>-<stage>-<stack>`.
 
+## Annotated `simple-cdk.config.ts`
+
+Every field the config file accepts, with realistic values for each. Only `app`, `stages` (with one stage that has a `region`), and `adapters` are required; everything else has sensible defaults or is off.
+
+```ts
+import { defineConfig } from '@simple-cdk/core';
+import { lambdaAdapter } from '@simple-cdk/lambda';
+import { dynamoDbAdapter } from '@simple-cdk/dynamodb';
+import { appSyncAdapter } from '@simple-cdk/appsync';
+
+export default defineConfig({
+  // App-level settings
+  app: 'my-app',                  // required. Used as the prefix for stack names
+                                  // and physical resource names: <app>-<stage>-<resource>
+  defaultStage: 'dev',            // optional. Used when --stage is omitted.
+                                  // Falls back to the first key of `stages` (alphabetical)
+  rootDir: process.cwd(),         // optional. Where adapters scan from. Defaults to
+                                  // the directory containing simple-cdk.config.ts
+
+  // Stages: one entry per environment. Each gets its own CF stacks.
+  stages: {
+    dev: {
+      region: 'us-east-1',        // required
+      account: '111122223333',    // optional. Falls back to CDK_DEFAULT_ACCOUNT /
+                                  // the profile account. Pin this in prod.
+      removalPolicy: 'destroy',   // 'destroy' | 'retain' | 'snapshot'.
+                                  // Applied to stateful resources (tables, buckets,
+                                  // RDS instances). Omit for raw CDK defaults.
+      logRetentionDays: 7,        // optional. Applied to Lambda log groups.
+      tags: {                     // optional. Propagated to every taggable resource
+        Environment: 'dev',       // in the stage's stacks.
+        Owner: 'platform',
+      },
+      env: {                      // optional. Injected as process.env on every
+        LOG_LEVEL: 'debug',       // discovered Lambda. Per-function config.ts
+        FEATURE_FLAGS: 'beta',    // can add to or override these.
+      },
+    },
+    prod: {
+      region: 'us-east-1',
+      account: '444455556666',
+      removalPolicy: 'retain',    // never delete prod tables on stack destroy
+      logRetentionDays: 365,
+      tags: { Environment: 'prod', Owner: 'platform' },
+      env: { LOG_LEVEL: 'info' },
+    },
+  },
+
+  // Adapters: listed in the order you want them to run. The engine enforces
+  // a stable wire-phase order, so declaration order mostly matters for
+  // readability (data-layer first, then compute, then API, then outputs).
+  adapters: [
+    dynamoDbAdapter(),            // no options means: scan backend/models/*.model.ts
+    lambdaAdapter({
+      defaultMemoryMb: 512,       // overrides the built-in 256 MB default
+      defaultTimeoutSeconds: 30,
+    }),
+    appSyncAdapter({
+      schemaFile: 'schema.graphql',
+      generateCrud: { models: 'all' },
+    }),
+  ],
+});
+```
+
+Per-adapter options live in each adapter's `types.ts` (`packages/adapter-lambda/src/types.ts`, `packages/adapter-dynamodb/src/types.ts`, etc.). The top-level `AppConfig` and `StageConfig` types are exported from `@simple-cdk/core` if you want to factor the config across multiple files.
+
 ## What's next
 
 - [Home](./Home.md) for the full reference of every built-in adapter
