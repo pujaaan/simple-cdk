@@ -22,6 +22,7 @@ There is no proprietary runtime in your Lambdas, no deploy daemon, no console, n
 - **Same pattern, every adapter.** `discover` finds work, `register` builds CDK constructs, `wire` cross-references other adapters' resources. There is nothing else to learn.
 - **Multi-stage out of the box.** `dev`/`staging`/`prod` (and ad-hoc sandboxes) are first-class. Pass `--stage` and the engine wires region, removal policy, and log retention from your config.
 - **TypeScript-first, fully typed.** `defineConfig`, adapter contracts, and lookup helpers (`getLambdaFunction`, `getDynamoTable`, `getUserPool`, etc.) are all typed.
+- **Smaller AI context.** One config file plus a few conventional folders is a fraction of the tokens a raw CDK app spends on stack classes, per-resource constructs, and IAM wiring. When an AI assistant loads your infra (or you paste it into a prompt), there's less boilerplate competing with the parts you actually want it to reason about. Project ships an [`llms.txt`](../llms.txt) for the same reason.
 
 ## Cons
 

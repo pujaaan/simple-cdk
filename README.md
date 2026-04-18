@@ -23,6 +23,7 @@ For teams shipping AWS serverless backends (Lambda, DynamoDB, AppSync for GraphQ
 - Scaffold a TypeScript serverless backend on AWS in one command (`npx simple-cdk init`)
 - Auto-generate CRUD resolvers for DynamoDB-backed AppSync APIs
 - Keep Amplify-style scaffolding ergonomics on projects where Amplify's restrictions won't fit
+- Keep your infra small enough to fit an AI assistant's context window without spending tokens on repetitive CDK wiring
 
 **Prefer plain CDK or Amplify when:** you have non-serverless workloads (ECS/EKS/EC2-heavy), deeply custom multi-stack topologies, or you want a fully managed full-stack framework that hosts frontend + backend together. (Already on CDK and happy with it? You don't have to choose. Embed simple-cdk into a slice of your existing app.)
 
